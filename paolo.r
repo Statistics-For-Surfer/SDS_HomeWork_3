@@ -17,12 +17,26 @@ mu = 10
 sigma = 2
 
 
-take_data_distribution <- function(k,n,labels = F , label = NULL){
+take_data_distribution <- function(k,n, label = NULL){
   x <- matrix(NA,n,k)
   for(i in 1:k){
     x[,i] <-rnorm(n, mean = mu , sd = sigma)
   }
 
+  x <- as.data.frame(cbind(x,label))
+  colnames(x[length(colnames(x))]) <-"label" 
+  return(x)
+}
+
+
+
+
+take_data_distribution_gamma <- function(k,n, label = NULL){
+  x <- matrix(NA,n,k)
+  for(i in 1:k){
+    x[,i] <-rgamma(n, shape = 8, rate = 5)
+  }
+  
   x <- as.data.frame(cbind(x,label))
   colnames(x[length(colnames(x))]) <-"label" 
   return(x)
@@ -71,22 +85,56 @@ par(mfrow = c(1,1))
 ########
 # Use the actual data
 alpha <- .05
-true_coef <- glm(label ~. , data = u)$coefficients
-x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
-z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
-true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
-true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
-abline(v = quantile(kolm_t, 1 - alpha), col = "red")
+# Simulation to get info about alpha
+for(i in 1:P){
+  x <- take_data_distribution(k,n0,label = 0)
+  z <- take_data_distribution(k,n1,label = 1)
+  u <- rbind(x,z) # Actual data
+  true_coef <- glm(label ~. , data = u)$coefficients
+  x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
+  z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
+  true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+  true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+  abline(v= true_kolm , col = "blue")
+  
+
+}
+
+# Simulation to get info about power
+for(i in 1:P){
+  x <- take_data_distribution(k,n0,label = 0)
+  z <- take_data_distribution_gamma(k,n1,label = 1)
+  u <- rbind(x,z) # Actual data
+  true_coef <- glm(label ~. , data = u)$coefficients
+  x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
+  z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
+  true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+  true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+  abline(v= true_kolm , col = "blue")
+  
+  
+}
+
+
+
+
+
+
+
+
+abline(v = quantile(kolm_t, 1 - alpha), col = "red", lwd = 3)
 abline(v= true_kolm , col = "blue")
 
 hist(mann_t)
 abline(v = quantile(mann_t, 1 - alpha), col = "red")
 abline(v= true_mann , col = "blue")
 ########
+# Simulation to get the power of the test
 
 
 
 
+########
 
 
 
