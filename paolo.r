@@ -3,19 +3,92 @@ load("hw3_data.RData")
 suppressWarnings()
 
 
-##### Esercise 3
 
+
+##### Esercise 3
+set.seed(123) # Reproducibility
 
 # Case 1 (The two distributions are the same)
- 
-
 n0 <- 80  # numero campioni con etichetta 0
 n1 <- 90  # sample size of labels 1
-k <- 1
+k <- 5
 # Get a sample from a specific distribution (es: normale)
-
 mu = 10
 sigma = 2
+
+
+take_data_distribution <- function(k,n,labels = F , label = NULL){
+  x <- matrix(NA,n,k)
+  for(i in 1:k){
+    x[,i] <-rnorm(n, mean = mu , sd = sigma)
+  }
+
+  x <- as.data.frame(cbind(x,label))
+  colnames(x[length(colnames(x))]) <-"label" 
+  return(x)
+}
+
+
+
+
+x <- take_data_distribution(k,n0,label = 0)
+z <- take_data_distribution(k,n1,label = 1)
+
+
+## Combine the two dataset
+
+u <- rbind(x,z) # Actual data
+
+#### Implement the Friedman procedure
+P <- 1000
+
+
+
+sigmoid <- function(x, theta){
+  n_features <- length(theta)
+  
+  n <- exp(theta[1] + sum(x*theta[2:n_features]))
+  return(n / (1+n))}
+
+kolm_t <- rep(NA , P)
+mann_t <- rep(NA, P)
+
+for(i in 1:P){
+  z_p <- take_data_distribution(k,n1,label =1)
+  u_p <- rbind(x,z_p)
+  glm_coef <- glm(label ~. , data = u_p)$coefficients
+  x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = glm_coef)
+  z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = glm_coef) #[TODO] See if make sense
+  kolm_t[i] <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+  mann_t[i] <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+}
+
+par(mfrow = c(1,2))
+hist(kolm_t)
+hist(mann_t)
+par(mfrow = c(1,1))
+
+########
+# Use the actual data
+alpha <- .05
+true_coef <- glm(label ~. , data = u)$coefficients
+x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
+z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
+true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+abline(v = quantile(kolm_t, 1 - alpha), col = "red")
+abline(v= true_kolm , col = "blue")
+
+hist(mann_t)
+abline(v = quantile(mann_t, 1 - alpha), col = "red")
+abline(v= true_mann , col = "blue")
+########
+
+
+
+
+
+
 
 
 # Esiste un pacchetto per la normale multivariate
@@ -113,12 +186,6 @@ m <- glm(Species ~ Petal.Length , data = i , family = binomial)
 m$coefficients[2:length(m$coefficients)]
 
 
-sigmoid <- function(x, theta){
-  features <- length(theta)
-  
-  n <- exp(theta[1] + sum(x*theta[2:features]))
-  return(n / (1+n))}
-  
 
 
 
