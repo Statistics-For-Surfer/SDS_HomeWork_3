@@ -1,6 +1,6 @@
 rm(list = ls())
 load("hw3_data.RData")
-
+suppressWarnings()
 
 
 ##### Esercise 3
@@ -106,26 +106,50 @@ if( t_hat_true > qunatile(1-alpha , t_hat ) ){decisio  <- "reject H0"}
 
 
 
+data("iris")
+i <- iris[iris$Species == "setosa" | iris$Species == "versicolor" ,]
+m <- glm(Species ~ Petal.Length , data = i , family = binomial)
+
+m$coefficients[2:length(m$coefficients)]
 
 
-
-
-
-
-
-
-
-
-
-t <- c()
-for (i in 1:P){
-  z <-rnorm(m , mu , sigma)
+sigmoid <- function(x, theta){
+  features <- length(theta)
   
+  n <- exp(theta[1] + sum(x*theta[2:features]))
+  return(n / (1+n))}
   
-} 
 
 
-length(u)
-?glm
 
-glm(u ~  x + z )
+
+#curve(sigmoid(x,m$coefficients),from = 2 , to = 3)
+
+
+X <- i$Petal.Length[i$Species == "setosa"]
+X
+Z <- i$Petal.Length[i$Species == "versicolor"]
+
+
+Z_p <- rnorm(50 , mean = 4.2, sd = 1)
+data <- data.frame(c(X,Z_p), i$Species)
+data
+
+
+
+model <- glm(i.Species ~ . , data= data,family = binomial)
+model$coefficients
+
+a <- sapply(X,sigmoid,theta = model$coefficients)
+b <- sapply(Z,sigmoid,theta = model$coefficients)
+
+t.test(a,b)
+
+scores_meno <- apply(X ,MARGIN = 1 , sigmoid ,theta = model$coefficients)
+
+scores_piu <- apply(Z ,MARGIN = 1, sigmoid ,theta = m$coefficients)
+
+
+t.test(scores_meno,scores_piu )
+
+
