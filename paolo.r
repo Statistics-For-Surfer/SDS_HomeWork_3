@@ -89,8 +89,8 @@ info_alpha <- function(P,percentile_kolm,percentile_mann){
     true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
     true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
     # Perform the Test
-    prop_rej[i,1] <- true_kolm > percentile_kolm
-    prop_rej[i,2] <- true_mann > percentile_mann
+    prop_rej[i,1] <- true_kolm < percentile_kolm
+    prop_rej[i,2] <- true_mann < percentile_mann
   }
   
   data = as.data.frame(prop_rej)
@@ -99,19 +99,68 @@ info_alpha <- function(P,percentile_kolm,percentile_mann){
   return(data)
 }
 
-
 data <- info_alpha(P = P , percentile_kolm  = p_kolm , percentile_mann  = p_mann)
-barplot(table(data$`Kolmogorov-Smirnov`), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic")
-barplot(table(data$Mann), col = c("red", "blue"),  main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using Mann Statistic")
-
-
-
-
-
-
+barplot(table(data$`Kolmogorov-Smirnov`), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"))
+barplot(table(data$Mann), col = c("red", "blue"),  main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using Mann Statistic",names.arg = c("Reject" , "Accept"))
 
 # Simulation to get info about power [TODO]
 
+
+theta_space <- seq(from = -3,  to = 3 , by = 1)
+n <- (length(theta_space)-1)**2
+n
+k<-0
+l<-0
+for(i in theta_space){
+  k <- k +1 
+  for(j in theta_space){
+    if(j == i){
+      next
+    }
+    l <- l + 1
+    print(l)
+  }
+}
+
+
+
+
+
+info_power <- function(P, percentile_kolm, percentile_mann, space_theta){
+  n <- length(space_theta)
+  l <- 0
+  prop_rej <- matrix(NA , ncol = 3 , nrow = (n*(n-1)) * P )
+  for (theta in space_theta){
+    for(theta_2 in space_theta){
+      if (theta_2 == theta){
+        next
+      }
+      l <- l + 1
+      for(i in 1:P){
+        x <- Take_sample_normal(k= k,n = n0,mu= theta , sigma = sigma,label = 0)
+        z <- Take_sample_normal(k= k,n = n0,mu= theta_2 , sigma = sigma,label = 0)
+        #[TODO] TAKE the distance between the distribitions
+        u <- rbind(x,z) # Combine the data
+        true_coef <- glm(label ~. , data = u)$coefficients
+        x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
+        z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
+        true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+        true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+        # Perform the Test
+        prop_rej[l*i,1] <- true_kolm < percentile_kolm
+        prop_rej[l*i,2] <- true_mann < percentile_mann
+        prop_rej[l*i,3] <-  "d"#distance
+        
+      } }}
+  data = as.data.frame(prop_rej)
+  return(data)
+}
+
+
+
+P = 10
+aa <- info_power(P , p_kolm , p_mann ,  theta_space)
+aa
 
 #################
 
