@@ -4,7 +4,7 @@ suppressWarnings()
 
 
 ####
-k <-  5 # Dimensios
+k <-  5 # Dimensions
 n0 <- 80  # Sample size 0
 n1 <- 90  # Sample size 1
 mu <- 10  # Mean
@@ -27,8 +27,7 @@ Take_sample_normal <- function(k,n, mu,sigma,label){
 }
 
 x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)
-y <- Take_sample_normal(k= k,n = n1,mu=mu,sigma = sigma,label = 1)
-
+z <- Take_sample_normal(k= k,n = n1,mu=mu,sigma = sigma,label = 1)
 u <- rbind(x,z) # Actual data
 
 
@@ -39,21 +38,23 @@ sigmoid <- function(x, theta){
   
   n <- exp(theta[1] + sum(x*theta[2:n_features]))
   return(n / (1+n))}
+
+
 ######
 
 
 #### Friedmann Procedure
 
-P <- 1000
+P <- 1000 # simulation size
 kolm_t <- rep(NA , P)
 mann_t <- rep(NA, P)
 
 for(i in 1:P){
-  z_p <- Take_sample_normal(k,n1,mu,sigma,label =1)
+  z_p <- Take_sample_normal(k,n1,mu,sigma,label =1) # Under H_0
   u_p <- rbind(x,z_p)
   glm_coef <- glm(label ~. , data = u_p)$coefficients
   x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = glm_coef)
-  z_scores <- apply(z_p ,MARGIN = 1 , sigmoid ,theta = glm_coef) #[TODO] See if make sense
+  z_scores <- apply(z_p ,MARGIN = 1 , sigmoid ,theta = glm_coef) 
   kolm_t[i] <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
   mann_t[i] <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
 }
@@ -67,12 +68,14 @@ abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
 
 p_mann <- quantile(mann_t , 1 - alpha)
 hist(mann_t, main = "
-     Kolmogorov-Smirnov statistic distribution \n under H_0",
+     Mann statistic distribution \n under H_0",
      col = "lightgreen" , border = "white")
 abline(v = p_mann  , col = "red" , lty = 3 , lwd = 2)
 
 box()
 ########
+
+
 # Simulation to get info about alpha
 
 info_alpha <- function(P,percentile_kolm,percentile_mann){
@@ -80,8 +83,8 @@ info_alpha <- function(P,percentile_kolm,percentile_mann){
   prop_rej_kolm <- rep(NA , P)
   prop_rej_mann <- rep(NA , P)
   for(i in 1:P){
-    x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)
-    z <- Take_sample_normal(k = k,n = n1, mu = mu, sigma = sigma, label = 1)
+    x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)  
+    z <- Take_sample_normal(k = k,n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
     u <- rbind(x,z) # Combine the data
     true_coef <- glm(label ~. , data = u)$coefficients
     x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
@@ -99,28 +102,19 @@ info_alpha <- function(P,percentile_kolm,percentile_mann){
   return(data)
 }
 
+
+
 data <- info_alpha(P = P , percentile_kolm  = p_kolm , percentile_mann  = p_mann)
 barplot(table(data$`Kolmogorov-Smirnov`), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"))
+
 barplot(table(data$Mann), col = c("red", "blue"),  main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using Mann Statistic",names.arg = c("Reject" , "Accept"))
 
 # Simulation to get info about power [TODO]
 
 
-theta_space <- seq(from = -3,  to = 3 , by = 1)
-n <- (length(theta_space)-1)**2
-n
-k<-0
-l<-0
-for(i in theta_space){
-  k <- k +1 
-  for(j in theta_space){
-    if(j == i){
-      next
-    }
-    l <- l + 1
-    print(l)
-  }
-}
+theta_space <- seq(from = -10,  to = 10 , by = 5)
+
+
 
 
 
@@ -158,7 +152,7 @@ info_power <- function(P, percentile_kolm, percentile_mann, space_theta){
 
 
 
-P = 10
+P = 3
 aa <- info_power(P , p_kolm , p_mann ,  theta_space)
 aa
 
