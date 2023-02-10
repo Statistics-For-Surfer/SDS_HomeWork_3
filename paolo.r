@@ -132,7 +132,7 @@ info_power <- function(P, percentile_kolm, percentile_mann, space_theta){
       l <- l + 1
       for(i in 1:P){
         x <- Take_sample_normal(k= k,n = n0,mu= theta , sigma = sigma,label = 0)
-        z <- Take_sample_normal(k= k,n = n0,mu= theta_2 , sigma = sigma,label = 0)
+        z <- Take_sample_normal(k= k,n = n0,mu= theta_2 , sigma = sigma,label = 1)
         #[TODO] TAKE the distance between the distribitions
         u <- rbind(x,z) # Combine the data
         true_coef <- glm(label ~. , data = u)$coefficients
