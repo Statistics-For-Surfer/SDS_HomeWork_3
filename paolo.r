@@ -3,21 +3,19 @@ load("hw3_data.RData")
 suppressWarnings()
 
 
+####
+k <-  5 # Dimensios
+n0 <- 80  # Sample size 0
+n1 <- 90  # Sample size 1
+mu <- 10  # Mean
+sigma <- 2 #sd 
+alpha <- .05 # significance level
 
-
+####
 ##### Esercise 3
 set.seed(123) # Reproducibility
 
-# Case 1 (The two distributions are the same)
-n0 <- 80  # numero campioni con etichetta 0
-n1 <- 90  # sample size of labels 1
-k <- 5
-# Get a sample from a specific distribution (es: normale)
-mu = 10
-sigma = 2
-
-
-take_data_distribution <- function(k,n, label = NULL){
+Take_sample_normal <- function(k,n, mu,sigma,label){
   x <- matrix(NA,n,k)
   for(i in 1:k){
     x[,i] <-rnorm(n, mean = mu , sd = sigma)
@@ -28,94 +26,94 @@ take_data_distribution <- function(k,n, label = NULL){
   return(x)
 }
 
-
-
-
-take_data_distribution_gamma <- function(k,n, label = NULL){
-  x <- matrix(NA,n,k)
-  for(i in 1:k){
-    x[,i] <-rgamma(n, shape = 8, rate = 5)
-  }
-  
-  x <- as.data.frame(cbind(x,label))
-  colnames(x[length(colnames(x))]) <-"label" 
-  return(x)
-}
-
-
-
-
-x <- take_data_distribution(k,n0,label = 0)
-z <- take_data_distribution(k,n1,label = 1)
-
-
-## Combine the two dataset
+x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)
+y <- Take_sample_normal(k= k,n = n1,mu=mu,sigma = sigma,label = 1)
 
 u <- rbind(x,z) # Actual data
 
-#### Implement the Friedman procedure
-P <- 1000
 
-
-
+######
+# Sigmoid Function
 sigmoid <- function(x, theta){
   n_features <- length(theta)
   
   n <- exp(theta[1] + sum(x*theta[2:n_features]))
   return(n / (1+n))}
+######
 
+
+#### Friedmann Procedure
+
+P <- 1000
 kolm_t <- rep(NA , P)
 mann_t <- rep(NA, P)
 
 for(i in 1:P){
-  z_p <- take_data_distribution(k,n1,label =1)
+  z_p <- Take_sample_normal(k,n1,mu,sigma,label =1)
   u_p <- rbind(x,z_p)
   glm_coef <- glm(label ~. , data = u_p)$coefficients
   x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = glm_coef)
-  z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = glm_coef) #[TODO] See if make sense
+  z_scores <- apply(z_p ,MARGIN = 1 , sigmoid ,theta = glm_coef) #[TODO] See if make sense
   kolm_t[i] <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
   mann_t[i] <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
 }
 
-par(mfrow = c(1,2))
-hist(kolm_t)
-hist(mann_t)
-par(mfrow = c(1,1))
+hist(kolm_t, main = "
+     Kolmogorov-Smirnov statistic distribution \n under H_0",
+     col = "skyblue" , border = "white")
+box()
+p_kolm <- quantile(kolm_t , 1 - alpha)
+abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
 
+p_mann <- quantile(mann_t , 1 - alpha)
+hist(mann_t, main = "
+     Kolmogorov-Smirnov statistic distribution \n under H_0",
+     col = "lightgreen" , border = "white")
+abline(v = p_mann  , col = "red" , lty = 3 , lwd = 2)
+
+box()
 ########
-# Use the actual data
-alpha <- .05
 # Simulation to get info about alpha
-for(i in 1:P){
-  x <- take_data_distribution(k,n0,label = 0)
-  z <- take_data_distribution(k,n1,label = 1)
-  u <- rbind(x,z) # Actual data
-  true_coef <- glm(label ~. , data = u)$coefficients
-  x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
-  z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
-  true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
-  true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
-  abline(v= true_kolm , col = "blue")
-  
 
-}
-
-# Simulation to get info about power
-for(i in 1:P){
-  x <- take_data_distribution(k,n0,label = 0)
-  z <- take_data_distribution_gamma(k,n1,label = 1)
-  u <- rbind(x,z) # Actual data
-  true_coef <- glm(label ~. , data = u)$coefficients
-  x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
-  z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
-  true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
-  true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
-  abline(v= true_kolm , col = "blue")
+info_alpha <- function(P,percentile_kolm,percentile_mann){
+  prop_rej <- matrix(NA , P , 2)
+  prop_rej_kolm <- rep(NA , P)
+  prop_rej_mann <- rep(NA , P)
+  for(i in 1:P){
+    x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)
+    z <- Take_sample_normal(k = k,n = n1, mu = mu, sigma = sigma, label = 1)
+    u <- rbind(x,z) # Combine the data
+    true_coef <- glm(label ~. , data = u)$coefficients
+    x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
+    z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
+    true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+    true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+    # Perform the Test
+    prop_rej[i,1] <- true_kolm > percentile_kolm
+    prop_rej[i,2] <- true_mann > percentile_mann
+  }
   
+  data = as.data.frame(prop_rej)
+  colnames(data) <- c("Kolmogorov-Smirnov","Mann")
   
+  return(data)
 }
 
 
+data <- info_alpha(P = P , percentile_kolm  = p_kolm , percentile_mann  = p_mann)
+barplot(table(data$`Kolmogorov-Smirnov`), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic")
+barplot(table(data$Mann), col = c("red", "blue"),  main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using Mann Statistic")
+
+
+
+
+
+
+
+# Simulation to get info about power [TODO]
+
+
+#################
 
 
 
@@ -138,7 +136,7 @@ abline(v= true_mann , col = "blue")
 
 
 
-
+#######################################
 # Esiste un pacchetto per la normale multivariate
 x <- rnorm(n0, mu, sigma)     # [TODO] Multivariate case
 y_x <- rep(0, n0)
