@@ -21,7 +21,7 @@ alpha <- .05 # significance level
 
 
 # Reproducibility.
-set.seed(123)
+set.seed(219)
 
 
 # Take random sample from a multi-normal distribution.
@@ -94,8 +94,8 @@ Friedman_procedure <- function(P){
   
   hist(kolm_t, main = "
        Kolmogorov-Smirnov statistic \n distribution under H_0",
-       col = "skyblue", border = "white", breaks= 20)
-  p_kolm <- quantile(kolm_t , 1 - alpha)
+       col = "skyblue", border = "white", breaks= 30)
+  p_kolm <<- quantile(kolm_t , 1 - alpha)
   abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
   box()
   
@@ -103,7 +103,7 @@ Friedman_procedure <- function(P){
   hist(mann_t, main = "
        Mann statistic distribution \n under H_0",
        col = "lightgreen", border = "white", breaks= 30)
-  p_mann <- quantile(mann_t , 1 - alpha)
+  p_mann <<- quantile(mann_t , 1 - alpha)
   abline(v = p_mann  , col = "red" , lty = 3 , lwd = 2)
   box()
 
