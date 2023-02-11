@@ -124,13 +124,24 @@ barplot(table(data$Mann), col = c("red", "blue"),  main = "Proportion of times w
 
 # Simulation to get info about power [TODO]
 
-
-theta_space <- seq(from = -10,  to = 10 , by = 5)
-
-
-
+# Since we are dealing with a family of multivariate normal distributions we can get the formula dor the distance analitycally
+library(pracma)
+library(psych)
 
 
+
+beta_q <- function(sigma1,sigma2){
+  traccia1 <- tr(sigma)
+  traccia2 <- tr(sigma2)
+  traccia3 <- tr(sqrtm(sqrtm(sigma1) %*% sigma2 %*% sqrtm(sigma1)))
+  return(traccia1 + traccia2 -2*traccia3)
+}
+Wasserstein_distance <- function(mu1,mu2,sigma1,sigma2){
+  norma <- norm(mu1-mu2 , type = "2")**2
+  beta_quadro <- beta_q(sigma1,sigma2)
+  return(norma + beta_quadro)
+  
+}
 
 
 info_power <- function(P, percentile_kolm, percentile_mann, space_theta){
