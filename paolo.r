@@ -7,27 +7,45 @@ suppressWarnings()
 k <-  5 # Dimensions
 n0 <- 80  # Sample size 0
 n1 <- 90  # Sample size 1
-mu <- 10  # Mean
-sigma <- 2 #sd 
 alpha <- .05 # significance level
+#### Generate Data from a multivariate normal
+library(MASS)
 
-####
+
+
+
+
+
 ##### Esercise 3
 set.seed(123) # Reproducibility
 
-Take_sample_normal <- function(k,n, mu,sigma,label){
-  x <- matrix(NA,n,k)
-  for(i in 1:k){
-    x[,i] <-rnorm(n, mean = mu , sd = sigma)
-  }
-
+Take_sample_normal <- function(n, mu,sigma,label){
+  x <- mvrnorm(n,mu,sigma)
   x <- as.data.frame(cbind(x,label))
   colnames(x[length(colnames(x))]) <-"label" 
   return(x)
 }
 
-x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)
-z <- Take_sample_normal(k= k,n = n1,mu=mu,sigma = sigma,label = 1)
+mu <- c(1,2,3,4,5)
+k <- 5
+
+# Create a diagonal matrix with positive elements
+diag_mat <- diag(1:k)
+
+# Create a symmetric matrix with non-negative elements
+sym_mat <- matrix(c(0, 1, 1, 1, 1,
+                    1, 0, 1, 1, 1,
+                    1, 1, 0, 1, 1,
+                    1, 1, 1, 0, 1,
+                    1, 1, 1, 1, 0), nrow = k, ncol = k, byrow = TRUE)
+
+# Sum the diagonal and symmetric matrices
+sigma <- diag_mat + sym_mat
+
+
+
+x <- Take_sample_normal(n = n0,mu=mu,sigma = sigma,label = 0)
+z <- Take_sample_normal(n = n1,mu=mu,sigma = sigma,label = 1)
 u <- rbind(x,z) # Actual data
 
 
@@ -37,20 +55,15 @@ sigmoid <- function(x, theta){
   n_features <- length(theta)
   
   n <- exp(theta[1] + sum(x*theta[2:n_features]))
-  return(n / (1+n))}
-
-
-######
-
-
+  return(n / (1+n))}######
 #### Friedmann Procedure
 
-P <- 1000 # simulation size
+P <- 10000 # simulation size
 kolm_t <- rep(NA , P)
 mann_t <- rep(NA, P)
 
 for(i in 1:P){
-  z_p <- Take_sample_normal(k,n1,mu,sigma,label =1) # Under H_0
+  z_p <- Take_sample_normal(n1,mu,sigma,label =1) # Under H_0
   u_p <- rbind(x,z_p)
   glm_coef <- glm(label ~. , data = u_p)$coefficients
   x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = glm_coef)
@@ -83,8 +96,8 @@ info_alpha <- function(P,percentile_kolm,percentile_mann){
   prop_rej_kolm <- rep(NA , P)
   prop_rej_mann <- rep(NA , P)
   for(i in 1:P){
-    x <- Take_sample_normal(k= k,n = n0,mu=mu,sigma = sigma,label = 0)  
-    z <- Take_sample_normal(k = k,n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
+    x <- Take_sample_normal(n = n0,mu=mu,sigma = sigma,label = 0)  
+    z <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
     u <- rbind(x,z) # Combine the data
     true_coef <- glm(label ~. , data = u)$coefficients
     x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
