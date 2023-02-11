@@ -26,24 +26,22 @@ Take_sample_normal <- function(n, mu,sigma,label){
   return(x)
 }
 
-mu <- c(1,2,3,4,5)
-k <- 5
 
-# Create a diagonal matrix with positive elements
-diag_mat <- diag(1:k)
+generate_mean <- function(k){
+  return(sample(1:7, k))
+}
 
-# Create a symmetric matrix with non-negative elements
-sym_mat <- matrix(c(0, 1, 1, 1, 1,
-                    1, 0, 1, 1, 1,
-                    1, 1, 0, 1, 1,
-                    1, 1, 1, 0, 1,
-                    1, 1, 1, 1, 0), nrow = k, ncol = k, byrow = TRUE)
-
-# Sum the diagonal and symmetric matrices
-sigma <- diag_mat + sym_mat
+generate_sigma <- function(k){
+  sym_mat <- matrix(1, ncol = k, nrow = k , byrow = TRUE)
+  diag_mat <- diag(sample(0:20),k)
+  # Sum the diagonal and symmetric matrices
+  sigma <- diag_mat + sym_mat
+  return(sigma)
+  
+}
 
 
-
+sigma <- generate_sigma(k)
 x <- Take_sample_normal(n = n0,mu=mu,sigma = sigma,label = 0)
 z <- Take_sample_normal(n = n1,mu=mu,sigma = sigma,label = 1)
 u <- rbind(x,z) # Actual data
@@ -53,9 +51,11 @@ u <- rbind(x,z) # Actual data
 # Sigmoid Function
 sigmoid <- function(x, theta){
   n_features <- length(theta)
-  
   n <- exp(theta[1] + sum(x*theta[2:n_features]))
   return(n / (1+n))}######
+
+
+
 #### Friedmann Procedure
 
 P <- 10000 # simulation size
@@ -143,36 +143,50 @@ Wasserstein_distance <- function(mu1,mu2,sigma1,sigma2){
   
 }
 
+### GET THE INFO
+mu
 
-info_power <- function(P, percentile_kolm, percentile_mann, space_theta){
-  n <- length(space_theta)
-  l <- 0
-  prop_rej <- matrix(NA , ncol = 3 , nrow = (n*(n-1)) * P )
-  for (theta in space_theta){
-    for(theta_2 in space_theta){
-      if (theta_2 == theta){
-        next
-      }
-      l <- l + 1
-      for(i in 1:P){
-        x <- Take_sample_normal(k= k,n = n0,mu= theta , sigma = sigma,label = 0)
-        z <- Take_sample_normal(k= k,n = n0,mu= theta_2 , sigma = sigma,label = 1)
-        #[TODO] TAKE the distance between the distribitions
-        u <- rbind(x,z) # Combine the data
-        true_coef <- glm(label ~. , data = u)$coefficients
-        x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
-        z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
-        true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
-        true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
-        # Perform the Test
-        prop_rej[l*i,1] <- true_kolm < percentile_kolm
-        prop_rej[l*i,2] <- true_mann < percentile_mann
-        prop_rej[l*i,3] <-  "d"#distance
-        
-      } }}
-  data = as.data.frame(prop_rej)
+power_info <- function(P,k, percentile_ks , percentile_mann){
+  mu2 <- c(1,5)
+  sigma2 <- sigma
+  distance <- Wasserstein_distance(mu,mu2,sigma,sigma2)
+  prop_ks <- rep(NA , P)
+  prop_mann <- rep(NA , P)
+  for(i in 1:P){
+    x <- Take_sample_normal(n = n0, mu= mu , sigma = sigma,label = 0)
+    z <- Take_sample_normal(n = n0, mu=  mu2, sigma = sigma2,label = 1)
+    u <- rbind(x,z) # Combine the data
+    true_coef <- glm(label ~. , data = u)$coefficients
+    x_scores <- apply(x ,MARGIN = 1 , sigmoid ,theta = true_coef)
+    z_scores <- apply(z ,MARGIN = 1 , sigmoid ,theta = true_coef)
+    true_kolm <- ks.test(x_scores,z_scores,alternative = "two.sided")$statistic
+    true_mann <- wilcox.test(x_scores,z_scores, alternative = "two.sided")$statistic
+    prop_ks[i] <- true_kolm < percentile_ks
+    prop_mann[i] <- true_mann < percentile_mann
+  }
+  data <- c(distance, mean(prop_ks),mean(prop_ks))
   return(data)
 }
+
+
+
+
+mu <- c(1,2)
+sigma <- generate_sigma(2)
+power_info(100,k = length(mu), percentile_ks = p_kolm ,percentile_mann  = p_mann)
+
+
+
+
+mu
+sigma
+p_kolm
+p_mann
+
+
+
+
+
 
 
 
@@ -201,135 +215,5 @@ abline(v= true_mann , col = "blue")
 
 ########
 
-
-
-#######################################
-# Esiste un pacchetto per la normale multivariate
-x <- rnorm(n0, mu, sigma)     # [TODO] Multivariate case
-y_x <- rep(0, n0)
-
-z <- rnorm(n1, mu ,sigma)
-y_z <- rep(1, n1)
-
-
-
-u <- c(y_x ,y_z)
-length(u)
-
-#####  Fisher's permutations
-?t.test
-P <-  1000
-?sample
-for(i in 1:P){
-  
-  u_P <- sample(u , size = length(u))    # We hypotized that the 2 distributions are the same
-  glm(u_P ~ x  + z)   # sotto forma di dataset   F(u)
-  ### Compute the score of the 2 distributions (positive and negative) 
-  p_negative <- dnorm(n0, 0.8, 0.2 )  # F(x)
-  p_positive <- dnorm(n1 , 0.5 , 0.4) # F(z)
-  # Perform the Kolmogorov , Chi squared , Mann Test
-  
-  t_hat <- c(t , t.test(p_negative , p_positive , alternative = "two.sided"))
-  
-}
-
-# We end uo with a set of values for t_hat (distribution of t_hat under H0)
-
-### Perform the test
-
-t_hat_true <- t.test(x, z , alternative = "two.sided")
-
-if( t_hat_true > qunatile(1-alpha , t_hat ) ){decisio  <- "reject H0"}
-
-
-
-####### Friedman's Procedure
-
-
-n0 <- 80  # numero campioni con etichetta 0
-n1 <- 90  # sample size of labels 1
-k <- 1
-# Get a sample from a specific distribution (es: normale)
-
-mu = 10
-sigma = 2
-
-
-# Esiste un pacchetto per la normale multivariate
-x <- rnorm(n0, mu, sigma)     # [TODO] Multivariate case
-y_x <- rep(0, n0)
-
-z <- rnorm(n1, mu ,sigma)
-y_z <- rep(1, n1)
-
-
-
-u <- c(y_x ,y_z)
-length(u)
-
-
-?t.test
-P <-  1000
-for(i in 1:P){
-  z_P <- rnorm(n1 , mu + 2 , sigma/2) # Hypotized a distribution for z_s sample
-  glm(u_P ~ x + z_P)
-  #### Compute the the score for positive and negative lables
-  p_negative <- F(x)
-  p_positive <- F(z)  # [TODO] check if z or z_P
-  # Perform the test (Kolmogorov, chi-squared , Mann)
-  t_hat_P <- c(t_hat_P , t.test(p_negative, p_positive , "two.sided"))
-}
-
-# We end uo with a set of values for t_hat (distribution of t_hat under H0)
-
-### Perform the test
-
-t_hat_true <- t.test(x, z , alternative = "two.sided")
-
-if( t_hat_true > qunatile(1-alpha , t_hat ) ){decisio  <- "reject H0"}
-
-
-
-
-
-data("iris")
-i <- iris[iris$Species == "setosa" | iris$Species == "versicolor" ,]
-m <- glm(Species ~ Petal.Length , data = i , family = binomial)
-
-m$coefficients[2:length(m$coefficients)]
-
-
-
-
-
-
-#curve(sigmoid(x,m$coefficients),from = 2 , to = 3)
-
-
-X <- i$Petal.Length[i$Species == "setosa"]
-X
-Z <- i$Petal.Length[i$Species == "versicolor"]
-
-
-Z_p <- rnorm(50 , mean = 4.2, sd = 1)
-data <- data.frame(c(X,Z_p), i$Species)
-data
-
-
-
-model <- glm(i.Species ~ . , data= data,family = binomial)
-model$coefficients
-
-a <- sapply(X,sigmoid,theta = model$coefficients)
-b <- sapply(Z,sigmoid,theta = model$coefficients)
-
-t.test(a,b)
-
-scores_meno <- apply(X ,MARGIN = 1 , sigmoid ,theta = model$coefficients)
-
-scores_piu <- apply(Z ,MARGIN = 1, sigmoid ,theta = m$coefficients)
-
-
-t.test(scores_meno,scores_piu )
 
 
