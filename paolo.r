@@ -21,7 +21,7 @@ alpha <- .05 # significance level
 
 
 # Reproducibility.
-set.seed(219)
+set.seed(324)
 
 
 # Take random sample from a multi-normal distribution.
@@ -89,6 +89,8 @@ Friedman_procedure <- function(P){
     kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
     mann_t[i] <- wilcox.test(x_scores, z_scores, alternative = "two.sided")$statistic
   }
+  mann_t <<- mann_t
+  kolm_t <<- kolm_t
   
   par(mfrow = c(1,2))
   
@@ -110,7 +112,6 @@ Friedman_procedure <- function(P){
 }
 
 Friedman_procedure(P)
-
 
 
 # Simulation to get info about ALPHA --------------------------------------
@@ -172,37 +173,62 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 }
 
 
+n0 <- 100
+n1 <- 100
 
-power_info <- function(P, k, percentile_ks, percentile_mann){
-  mu2 <- mu + 1   # insert by hand
+power_info <- function(P, k, percentile_ks, percentile_mann, increment){
+  mu2 <- mu + increment 
   sigma2 <- sigma
   distance <- Wasserstein_distance(mu, mu2, sigma, sigma2)
   prop_ks <- rep(NA, P)
   prop_mann <- rep(NA, P)
   for(i in 1:P){
     x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
-    z <- Take_sample_normal(n = n0, mu=  mu2, sigma = sigma2, label = 1)
+    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
     u <- rbind(x,z) 
     true_coef <- glm(label ~ ., data = u)$coefficients
     x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
     z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
     true_mann <- wilcox.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    prop_ks[i] <- true_kolm < percentile_ks
-    prop_mann[i] <- true_mann < percentile_mann
+    prop_ks[i] <- true_kolm > percentile_ks
+    prop_mann[i] <- true_mann > percentile_mann
   }
-  data <- c(distance, mean(prop_ks), mean(prop_ks))
-  names(data) <- c('Distance', 'K-S', 'Mann')
+  data <- c(distance, mean(prop_ks), mean(prop_mann))
+  names(data) <- c('Distance', 'K_S', 'Mann')
   
   return(data)
 }
 
-
-mu <- c(1, 2, 3, 4, 5)
+k <- 5
+mu <- 1:k
 sigma <- generate_sigma(length(mu))
-power_info(1000, k = length(mu), percentile_ks = p_kolm, percentile_mann  = p_mann)
+power_info(100, k = length(mu), percentile_ks = p_kolm, percentile_mann  = p_mann, increment = 10)
 
 
 
 
+
+# Plot
+results <- matrix(NA, ncol = 3, nrow = 0)
+
+k <- 10
+P <- 1000
+M <- seq(0,1, .05)
+mu <- generate_mean(k)
+sigma <- generate_sigma(length(mu))
+
+for(l in M){
+  a <- power_info(P, k = length(mu), percentile_ks = p_kolm,
+                  percentile_mann = p_mann, increment = l)
+  results <- rbind(results, a)
+  
+}
+
+results <- as.data.frame(results)
+
+par(mfrow = c(1,1))
+plot(results$Distance, results$K_S, type = 'l', main='Relation between distance and power', lwd=2, col='skyblue', xlab='Distance', ylab='Power')
+points(results$Distance, results$Mann, type = 'l', main='Relation between distance and power', lwd=2, col='lightgreen')
+legend('bottomright', legend = c('K-S', 'Mann'), col= c('skyblue', 'lightgreen'), lwd=3)
 
