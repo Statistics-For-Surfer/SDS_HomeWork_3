@@ -70,62 +70,73 @@ library(energy)
 
 
 
-td_ROI_mean <- list_summary(td_data , mean)
-mvnorm.etest(td_ROI_mean[,116], R=100)
-vector_mu <- apply(td_ROI_mean,MARGIN = 2 ,mean)
-variance_covariance_matrix <- cov(td_ROI_mean)
+td_ROI_mean <- list_summary(td_data , mean) # Get the mean per ROI
+mvnorm.etest(td_ROI_mean[,116], R=100)      # TEST the multi normal distribution
+vector_mu <- apply(td_ROI_mean,MARGIN = 2 ,mean)  # Estimate the mu parameter
+variance_covariance_matrix <- cov(td_ROI_mean)    # Estimate the SIGMA parameter
+td_ROI_mean <- cbind(td_ROI_mean , 0 )            # Adding the label
 
-asd_ROI_mean <- list_summary(asd_data , mean)
-mvnorm.etest(asd_ROI_mean[,116], R=100)
-vector_mu <- apply(asd_ROI_mean,MARGIN = 2 ,mean)
-variance_covariance_matrix <- cov(asd_ROI_mean)
+training_data <- as.data.frame(td_ROI_mean[1:69,]) # pick the training dataset
 
+names(training_data)[117] ="label"
 
+n1 <- 93
+alpha <- .05
+##### Perform The FriedMan procedure
+Friedman_procedure <- function(P){
+  kolm_t <- rep(NA, P)
+  for(i in 1:P){
+    z_p <- Take_sample_normal(n1, vector_mu, variance_covariance_matrix, label =1) # Under H_0
+    u_p <- rbind(training_data, z_p)
+    glm_coef <- unname(glm(label ~ ., data = u_p)$coefficients)
+    glm_coef <- glm_coef[is.na(glm_coef)!= T]
+    
+    x_scores <- apply(training_data, MARGIN = 1, sigmoid, theta = glm_coef)
+    z_scores <- apply(z_p, MARGIN = 1, sigmoid, theta = glm_coef) 
+    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+  }
+  kolm_t <<- kolm_t
+  
+  hist(kolm_t, main = "
+       Kolmogorov-Smirnov statistic \n distribution under H_0",
+       col = "skyblue", border = "white", breaks= 30)
+  p_kolm <<- quantile(kolm_t , 1 - alpha)
+  abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
+  box()
+}
 
-
-
-
-
-
-
-
-
-td_ROI_sd<- list_summary(td_scale, sd)
-
-
-b <- list_summary(asd_scale, mean)
-
-a <- cbind(a, rep(0, nrow(a)))
-b <- cbind(b, rep(0, nrow(b)))
-
-
-
-
-
-
-
-library(corrplot)
-corrplot(cor(asd_data[[1]]), order="hclust")
-
-
+P <- 1000
 
 
+Friedman_procedure(P)
+
+
+# TEST FOR FALSE POSITIVE
+test_dataset <- as.data.frame(td_ROI_mean[70:dim(td_ROI_mean)[1],])
+names(test_dataset)[117] ="label"
+
+dim(test_dataset)
+
+
+prop_rej <- rep(NA, length(test_dataset) / 2 )
+
+x <- test_dataset[1:((dim(test_dataset)[1])/2),]
+z <- test_dataset[((dim(test_dataset)[1])/2) + 1 : dim(test_dataset)[1],]
+z$label <- 1
+u <- rbind(x,z)
+
+glm_coef <- unname(glm(label ~ ., data = u)$coefficients)
+
+x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
+z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
+true_kolm <- ks.test(x_scores ,z_scores, alternative = "two.sided")$statistic
+# Perform the Test
+true_kolm < p_kolm
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+####
 
 
 
