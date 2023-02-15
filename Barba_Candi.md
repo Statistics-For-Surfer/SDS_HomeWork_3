@@ -26,8 +26,28 @@ samples for
 and
 ![n\_{1}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;n_%7B1%7D "n_{1}")
 samples for
-![\\underline{z}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cunderline%7Bz%7D "\underline{z}")
-.
+![\\underline{z}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cunderline%7Bz%7D "\underline{z}").
+We create then a hypothesis system as the following:
+
+$$
+
+$$ Since the distribution we want to compare are multivariate ones,
+there are not variety of procedures that can compare them directly. The
+idea then, is to perform classification machine learning algorithm as
+logistic regression. Then compute the scores of the observed data
+![\\underline{s\_{x}}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cunderline%7Bs_%7Bx%7D%7D "\underline{s_{x}}")
+and
+![\\underline{s\_{z}}](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Cunderline%7Bs_%7Bz%7D%7D "\underline{s_{z}}")
+and compare the univariate distribuion of them using two sample
+hypothesis test as Kolmogorov-Smirnov. So the hypothesis system would be
+as the following:
+
+$$
+
+$$
+
+When the same data is used for both training and subsequent scoring,
+these univariate null distributions are not valid.
 
 ``` r
 summary(cars)
