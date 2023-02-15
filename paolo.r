@@ -19,8 +19,8 @@ scale_datasets_list <- function(ls){
   return(scaled_list)
 }
 
-td_scale <- scale_datasets_list(td_data)
-asd_scale <- scale_datasets_list(asd_data)
+#td_scale <- scale_datasets_list(td_data)
+#asd_scale <- scale_datasets_list(asd_data)
 
 
 
@@ -68,16 +68,14 @@ list_summary <- function(list, fun){
 
 library(energy)
 
+td_ROI_mean <- list_summary(td_data , median) # Get the mean per ROI
+mvnorm.etest(td_ROI_mean[,116],R = 100)      # TEST the multi normal distribution 
+# He reject the null Hypothesis, there is no statistical significance that the two distributions are different
 
-
-td_ROI_mean <- list_summary(td_data , mean) # Get the mean per ROI
-mvnorm.etest(td_ROI_mean[,116], R=100)      # TEST the multi normal distribution
 vector_mu <- apply(td_ROI_mean,MARGIN = 2 ,mean)  # Estimate the mu parameter
 variance_covariance_matrix <- cov(td_ROI_mean)    # Estimate the SIGMA parameter
 td_ROI_mean <- cbind(td_ROI_mean , 0 )            # Adding the label
-
 training_data <- as.data.frame(td_ROI_mean[1:69,]) # pick the training dataset
-
 names(training_data)[117] ="label"
 
 n1 <- 93
@@ -88,6 +86,7 @@ Friedman_procedure <- function(P){
   for(i in 1:P){
     z_p <- Take_sample_normal(n1, vector_mu, variance_covariance_matrix, label =1) # Under H_0
     u_p <- rbind(training_data, z_p)
+    
     glm_coef <- unname(glm(label ~ ., data = u_p)$coefficients)
     glm_coef <- glm_coef[is.na(glm_coef)!= T]
     
@@ -121,14 +120,21 @@ dim(test_dataset)
 prop_rej <- rep(NA, length(test_dataset) / 2 )
 
 x <- test_dataset[1:((dim(test_dataset)[1])/2),]
-z <- test_dataset[((dim(test_dataset)[1])/2) + 1 : dim(test_dataset)[1],]
+seque <- seq(from = dim(test_dataset)[1]/2 + 1 , to = dim(test_dataset)[1]) 
+z <- test_dataset[seque,]
 z$label <- 1
-u <- rbind(x,z)
+dim(x)
+dim(z)
 
-glm_coef <- unname(glm(label ~ ., data = u)$coefficients)
+u_test <- data.frame(rbind(x,z))
+dim(u_test)
+?glm
+glm_coef <- glm(label ~., data = u_test)$coefficients
 
-x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
-z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
+x_scores <- apply(x, MARGIN = 1, sigmoid, theta = glm_coef)
+z_scores <- apply(z, MARGIN = 1, sigmoid, theta = glm_coef)
+hist(x_scores)
+
 true_kolm <- ks.test(x_scores ,z_scores, alternative = "two.sided")$statistic
 # Perform the Test
 true_kolm < p_kolm
@@ -159,12 +165,12 @@ lapply(packs, require, character.only = TRUE)
 # Input.
 k <- 5 # Dimensions
 n0 <- 80  # Sample size 0
-n1 <- 90  # Sample size 1
+n1 <- 80  # Sample size 1
 alpha <- .05 # significance level
 
 
 # Reproducibility.
-set.seed(234)
+set.seed(123)
 
 
 # Take random sample from a multi-normal distribution.
@@ -227,7 +233,7 @@ Friedman_procedure <- function(P){
     u_p <- rbind(x, z_p)
     glm_coef <- unname(glm(label ~ ., data = u_p)$coefficients)
     x_scores <- apply(x, MARGIN = 1, sigmoid, theta = glm_coef)
-    z_scores <- apply(z_p, MARGIN = 1, sigmoid, theta = glm_coef) 
+    z_scores <- apply(z, MARGIN = 1, sigmoid, theta = glm_coef) 
     kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
   }
   kolm_t <<- kolm_t
@@ -244,28 +250,32 @@ Friedman_procedure(P)
 
 
 # Simulation to get info about ALPHA --------------------------------------
-
+x
 alpha_info <- function(P, percentile_kolm){
   prop_rej <- rep(NA, P)
+  p_values <- rep(NA,P)
   for(i in 1:P){
-    x <- Take_sample_normal(n = n0, mu=mu, sigma = sigma, label = 0)  
-    z <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
-    u <- rbind(x, z) # Combine the data
+    #x <- Take_sample_normal(n = n0, mu=mu, sigma = sigma, label = 0)  
+    z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
+    u <- rbind(x, z_p) # Combine the data
     true_coef <- glm(label ~ ., data = u)$coefficients
     x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
     z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
     true_kolm <- ks.test(x_scores ,z_scores, alternative = "two.sided")$statistic
+    p_values[i] <- ks.test(x_scores ,z_scores, alternative = "two.sided")$p.value
     # Perform the Test
     prop_rej[i] <- true_kolm < percentile_kolm
   }
-  
-  return(prop_rej)
+  data = cbind(p_values,prop_rej)
+  return(data)
 }
 
 
 data <- alpha_info(P = P, percentile_kolm = p_kolm)
+colnames(data)
+hist(data[,1],breaks = 5,freq = F)
 
-barplot(prop.table(table(data)), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
+barplot(prop.table(table(data[,2])), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 
 
 
@@ -291,20 +301,23 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 }
 
 
-
+x
 power_info <- function(P, k, percentile_ks, increment){
   mu2 <- mu + increment 
   sigma2 <- sigma
   distance <- Wasserstein_distance(mu, mu2, sigma, sigma2)
   prop_ks <- rep(NA, P)
+  z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
+  p_values <- rep(NA,P) 
   for(i in 1:P){
-    x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
-    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
-    u <- rbind(x,z) 
+    #x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
+    z_p <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
+    u <- rbind(x,z_p) 
     true_coef <- glm(label ~ ., data = u)$coefficients
     x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
     z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    p_values[i] <- ks.test(x_scores ,z_scores, alternative = "two.sided")$p.value
     prop_ks[i] <- true_kolm > percentile_ks
   }
   data <- c(distance, mean(prop_ks))
@@ -315,25 +328,25 @@ power_info <- function(P, k, percentile_ks, increment){
 
 k <- 5
 mu <- 1:k
-sigma <- generate_sigma(length(mu))
-power_info(1000, k = length(mu), percentile_ks = p_kolm, increment = 10)
+#sigma <- generate_sigma(length(mu))
+x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
+a <- power_info(1000, k = length(mu), percentile_ks = p_kolm, increment = 0.1)
 
 
 
 
 
 # Plot
-n0 <- 200
-n1 <- 200
+#n0 <- 200
+#n1 <- 200
 
 P <- 1000
 k <- 50
-M <- seq(0, .5, .05)
+M <- seq(0, 1.4, .2)
 mu <- generate_mean(k)
 sigma <- generate_sigma(length(mu))
-
-Wasserstein_distance(mu, mu+.5, sigma, sigma)
-
+x <- Take_sample_normal(n0,mu = mu , sigma = sigma, label = 0)
+Wasserstein_distance(mu, mu+1.3, sigma, sigma)
 results <- matrix(NA, ncol = 2, nrow = 0)
 
 for(l in M){
@@ -343,9 +356,10 @@ for(l in M){
 
 results <- as.data.frame(results)
 
-plot(results$Distance, results$K_S, type = 'l', main=paste0("Relation between Distance and Test's Power \n with k = ", k), lwd=3, col='skyblue', xlab='Distance', ylab="Test's Power", las=1, xlim=c(0,10))
-abline(h=1, lty =3)
 
+plot(results$Distance, results$K_S, type = 'o',pch = '8', main=paste0("Relation between Distance and Test's Power \n with k = ", k), lwd=3, col='olivedrab', xlab='Distance', ylab="Test's Power", las=1, xlim=c(0,max(results$Distance)),abline(h=1, lty =3))
+grid()
+points(results$Distance, results$K_S , col = "gold" , pch = 13)
 
 k20_n200 <- results
 
