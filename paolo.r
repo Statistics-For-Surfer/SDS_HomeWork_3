@@ -74,12 +74,11 @@ u <- rbind(x, z) # Actual data
 # Friedman Procedure ------------------------------------------------------
 
 P <- 1000
-
+?predict
 Friedman_procedure <- function(P){
   
   kolm_t <- rep(NA, P)
-  mann_t <- rep(NA, P)
-  
+
   for(i in 1:P){
     z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
     u_p <- rbind(x, z_p)
@@ -87,12 +86,11 @@ Friedman_procedure <- function(P){
     x_scores <- apply(x, MARGIN = 1, sigmoid, theta = glm_coef)
     z_scores <- apply(z_p, MARGIN = 1, sigmoid, theta = glm_coef) 
     kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    mann_t[i] <- wilcox.test(x_scores, z_scores, alternative = "two.sided")$statistic
   }
   mann_t <<- mann_t
   kolm_t <<- kolm_t
   
-  par(mfrow = c(1,2))
+
   
   hist(kolm_t, main = "
        Kolmogorov-Smirnov statistic \n distribution under H_0",
@@ -101,25 +99,16 @@ Friedman_procedure <- function(P){
   abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
   box()
   
-  
-  hist(mann_t, main = "
-       Mann statistic distribution \n under H_0",
-       col = "lightgreen", border = "white", breaks= 30)
-  p_mann <<- quantile(mann_t , 1 - alpha)
-  abline(v = p_mann  , col = "red" , lty = 3 , lwd = 2)
-  box()
 
 }
 
 Friedman_procedure(P)
-
+par(mfrow = c(1,1))
 
 # Simulation to get info about ALPHA --------------------------------------
 
-alpha_info <- function(P, percentile_kolm, percentile_mann){
-  prop_rej <- matrix(NA , P , 2)
-  prop_rej_kolm <- rep(NA , P)
-  prop_rej_mann <- rep(NA , P)
+alpha_info <- function(P, percentile_kolm){
+  prop_rej <- rep(NA , P)
   for(i in 1:P){
     x <- Take_sample_normal(n = n0, mu=mu, sigma = sigma, label = 0)  
     z <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
@@ -128,31 +117,30 @@ alpha_info <- function(P, percentile_kolm, percentile_mann){
     x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
     z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
     true_kolm <- ks.test(x_scores ,z_scores, alternative = "two.sided")$statistic
-    true_mann <- wilcox.test(x_scores, z_scores, alternative = "two.sided")$statistic
     # Perform the Test
-    prop_rej[i,1] <- true_kolm < percentile_kolm
-    prop_rej[i,2] <- true_mann < percentile_mann
+    prop_rej[i] <- true_kolm < percentile_kolm
+
   }
 
 
   
   data = as.data.frame(prop_rej)
-  colnames(data) <- c("Kolmogorov-Smirnov", "Mann")
+  colnames(data) <- c("Kolmogorov-Smirnov")
   
   return(data)
 }
 
 
-data <- alpha_info(P = P, percentile_kolm = p_kolm, percentile_mann = p_mann)
+data <- alpha_info(P = P, percentile_kolm = p_kolm)
 
 
 barplot(prop.table(table(data$`Kolmogorov-Smirnov`)), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 
-barplot(prop.table(table(data$Mann)), col = c("red", "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using Mann Statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
+#barplot(prop.table(table(data$Mann)), col = c("red", "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using Mann Statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 
 
 
-
+?ks.test()
 
 # Simulation to get info about POWER --------------------------------------
 
