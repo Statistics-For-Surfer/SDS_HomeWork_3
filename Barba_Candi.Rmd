@@ -1,0 +1,30 @@
+---
+title: "Statistics for Data Science - Homework 3"
+author: "Barba Paolo, Candi Matteo"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Purpose and Statistical tools used
+
+The goal of the project is to perform Friedman's procedure as a proxy of multiple studies and applyi it on fMRI (functional magnetic resonance imaging) data in order to test wheter the data from td (tipacally develpment) subjects and asd (authism spectrum disorder) subject came from the same distribution or not. In order to reach this goal we used statistical tools as machine learning algorithm and two-sample Hypothesis testing.
+
+## Exercise 3
+Friedman's procedure is used for solving two-sample hypothesis testing when the each observation consists of many measured attributes $x_{i} = x_{i_1}, x_{i_2} . . . x_{i_{M}}$ and $z_{i} = z_{i_1}, z_{i_2} . . . z_{i_{M}}$ where M is the dimensionality of the dataset and we have $n_{0}$ samples for $\underline{x}$ and $n_{1}$ samples for $\underline{z}$  . 
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
