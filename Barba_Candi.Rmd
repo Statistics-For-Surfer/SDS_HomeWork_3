@@ -108,37 +108,20 @@ Take_sample_normal <- function(n, mu, sigma, label){
   
   return(x)
 }
-# Generate k random means.
-generate_mean <- function(k){
-  
-  return(sample(1:3, k , replace = T))
-}
-
-# Generate random Covariance matrix (k*k).
-generate_sigma <- function(k){
-  sym_mat <- matrix(1, ncol = k, nrow = k, byrow = TRUE)
-  diag_mat <- diag(sample(0:3,replace = T), k)
-  sigma <- diag_mat + sym_mat
-  
-  return(sigma)
-}
 
 
-mu <- generate_mean(k)
-sigma <- generate_sigma(k)
 
-x <- Take_sample_normal(n = n0, mu=mu, sigma = sigma, label = 0)
+mu <- rep(0,k)
+sigma <- diag(1 ,k)
 
-z <- Take_sample_normal(n = n1, mu=mu, sigma = sigma, label = 1)
-u <- rbind(x, z) # Actual data
 ```
 
 
 In order to get the distribution of the Kolmogorov-Smirnov statistic under the null hypopthesis, we implement the Friedman's procedure, supposing a reference distribution $p_{0}$ that have generated the $\underline{z}$ sample. Under the null hypothesis $p_{0}$ has the same distribution than the one that have generated the $\underline{x}$ sample. After have implemented the Friedmann's procedure we end with $t_{1} \dots t_{P}$ kolmogorov statistics that can be used as the distribution of statistic test under the null hypothesis. So we can build the reject region $R_{\alpha}$ as the values of the test statistic  greater than a threshold equal $1 - \alpha$ quantile of the distribution. We reject with significance level $\alpha$ if the observed statistics is greater than the threshold.
 
-```{r permutation test, warning= FALSE}
+```{r permutation test, warning=FALSE}
 
-permutation_test <- function(P){
+permutation_test <- function(P,u){
   label0 <- rep(0,n0)
   label1 <- rep(1,n1)
   labels <- c(label0,label1)
@@ -153,7 +136,7 @@ permutation_test <- function(P){
   return(per_kolm)
 }
 
-per_kolm <- permutation_test(P)
+#per_kolm <- permutation_test(P)
 ```
 
 ```{r permutation histogram , echo=FALSE}
@@ -166,16 +149,14 @@ box()
 ```{r Friedmann Procedure, warning= FALSE}
 
 
-Friedman_procedure <- function(P){
-  
+Friedman_procedure <- function(P,x,z){
   kolm_t <- rep(NA, P)
-
   for(i in 1:P){
     z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
     u_p <- rbind(x, z_p)
-    glm_model <-glm(label ~ ., data = u_p,maxit = 100)
+    glm_model <-glm(label ~ ., data = u_p)
     x_scores <- predict(glm_model , x[,1:k])
-    z_scores <- predict(glm_model,z[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
     kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
   }
   
@@ -185,12 +166,40 @@ Friedman_procedure <- function(P){
 
 ```
 
+```{r meta test, warning = FALSE}
+
+
+meta_test <- function(P,x,z){
+  u_obs <- rbind(x,z)
+  labels <- c(rep(0,n0),rep(1,n1))
+  meta_kolm <- rep(NA, P)
+  for(i in 1:P){
+    idx <- sample(x = 1:(n0+n1) , size = n0+n1)
+    z_p <- Take_sample_normal(n1,mu = mu, sigma = sigma , label = 1)
+    u <- rbind(x,z_p)
+    u$label <- labels[idx]
+    glm_model <- glm(label ~ ., data = u)
+    scores <- predict(glm_model , u_obs[,1:k])
+    meta_kolm[i] <- ks.test(scores[u$label == 0],scores[u$label == 1])$statistic
+  }
+  return(meta_kolm)
+}
+
+x <- Take_sample_normal(n0,mu = mu , sigma = sigma, label = 0)
+z <- Take_sample_normal(n1,mu = mu , sigma = sigma, label = 1)
+meta_k <- meta_test(P = P , x = x , z = z)
+
+
+
+```
+
+
 ```{r histo, warning=FALSE}
-kolm_t <- Friedman_procedure(P = P)
-hist(kolm_t, main = "
+#kolm_t <- Friedman_procedure(P = P)
+hist(meta_k, main = "
        Kolmogorov-Smirnov statistic \n distribution under H_0",
        col = "skyblue", border = "white", breaks= 30)
-p_kolm <- quantile(kolm_t , 1 - alpha)
+p_kolm <- quantile(meta_k , 1 - alpha)
 abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
 box()
 ```
@@ -198,45 +207,48 @@ After have built the reject region $R_{\alpha}$ we can perform the test as many 
 
 ### Info about alpha
 ```{r alpha info, warning=FALSE}
-
-alpha_info <- function(P, percentile_kolm){
+P <- 100
+alpha_info <- function(P){
   prop_rej <- rep(NA, P)
   p_values <- rep(NA , P)
   
   for(i in 1:P){
     x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
     z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
-    u_p <- rbind(x_p, z_p) # Combine the data
-    glm_model <-glm(label ~ ., data = u_p,maxit = 100)
+    u_p<- rbind(x_p, z_p) # Combine the data
+    
+    kk <- Friedman_procedure(P,x_p,z_p) # As mavi said
+    glm_model <-glm(label ~ ., data = u_p)
+    
     x_scores <- predict(glm_model , x_p[,1:k])
     z_scores <- predict(glm_model,  z_p[,1:k])
+    
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    prop_rej[i] <- true_kolm < percentile_kolm
-    #p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$p.value
+    prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)
+    p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$p.value
    
   }
   
-  data = as.data.frame(prop_rej)
-  colnames(data) <- c("KS")
+  data = as.data.frame(cbind(prop_rej,p_values))
+  colnames(data) <- c("KS","p")
   
   return(data)
 }
 
-data <- alpha_info(P = P, percentile_kolm = permutation_quantile)
+data <- alpha_info(P = P)
 
 ```
 
-```{r alpha power}
+```{r alphasss}
 t <- proportions(table(data[,1]))
 barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 ```
 
-```{r p_values}
-hist(data[,2] , freq = F , main = "empirical p-values distribution", col = "cyan4")
 
+```{r pps}
+sum(data$p > 0.05 )/ length(data$p)
+hist(data$p,breaks = 8)
 ```
-
-
 
 ### Changing size \alpha
 
@@ -261,8 +273,100 @@ for(i in 1:length(n0s)){
 
 
 ```
-```{r changing alpha, changing }
+
+```{r changing alpha, changing, warning=FALSE}
 ks <- c(5,20,70,100)
-n0 <- 
+n0 <- 70
+alpha_permutation_2 <- rep(NA ,length(ks))
+alpha_Friedmann_2 <- rep(NA ,length(ks))
+for(i in 1:length(ks)){
+  k <- ks[i]
+  mu <- generate_mean(k)
+  sigma <- generate_sigma(k)
+  x <- Take_sample_normal(n = n0 , mu = mu , sigma = sigma, label = 0)
+  z <- Take_sample_normal(n = n1 , mu = mu , sigma = sigma, label = 1)
+  u <- rbind(x, z) # Actual data
+  per_kolm <- permutation_test(P)
+  p_kolm <-   Friedman_procedure(P)
+  alpha_permutation_2[i] <- 1-mean(alpha_info(P, percentile_kolm = quantile(per_kolm , 1 - alpha))$KS)
+  alpha_Friedmann_2[i] <- 1-mean(alpha_info(P, percentile_kolm = quantile(p_kolm , 1 - alpha))$KS)
+  }
+  
 ```
 
+
+```{r plots alpha, changing, warning=FALSE}
+plot(n0s,alpha_permutation, col = "gold",ylim = c(0,1),type = "l")
+points(n0s,alpha_Friedmann, col = "blue",type = "l")
+
+```
+
+```{r plots alpha2, changing, warning=FALSE}
+plot(ks,alpha_permutation_2, col = "gold",ylim = c(0,1),type = "l")
+points(ks,alpha_Friedmann_2, col = "blue",type = "l")
+
+```
+
+```{r distance function, warning=FALSE}
+# Distance functions.
+beta_q <- function(sigma1, sigma2){
+  trace_1 <- tr(sigma)
+  trace_2 <- tr(sigma2)
+  trace_3 <- tr(sqrtm(sqrtm(sigma1)$B %*% sigma2 %*% sqrtm(sigma1)$B)$B)
+  
+  return(trace_1 + trace_2 - 2*trace_3)
+}
+
+Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
+  norma <- norm(mu1-mu2, type = "2")**2
+  beta_quadro <- beta_q(sigma1, sigma2)
+  
+  return(norma + beta_quadro)
+}
+
+```
+
+
+```{r power info , warning = FALSE}
+power_info <- function(P, k, percentile_ks, increment){
+  
+  prop_ks <- rep(NA, P)
+  for(i in 1:P){
+    x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
+    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
+    u <- rbind(x,z) 
+    p_model <- glm(label ~ ., data = u)
+    x_scores <- predict(p_model, x)
+    z_scores <- predict(p_model, z) 
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    prop_ks[i] <- true_kolm > percentile_ks
+  }
+  data <-  mean(prop_ks)
+  
+  
+  return(data)
+}
+```
+
+
+```{r power info changing distance , warning = FALSE}
+k <- 5
+mu <- 1:k
+sigma <- generate_sigma(length(mu))
+max_in <- 5
+ll <- seq(from = 0 , to = max_in , by = 0.5 )
+powers <- c()
+distance <- c()
+for (i in (ll)){
+  print(i)
+  mu2 <- mu + i 
+  sigma2 <- sigma
+  distance <- c(distance,Wasserstein_distance(mu, mu2, sigma, sigma2))
+  powers <- c(powers,power_info(100, k = length(mu), percentile_ks = quantile(per_kolm, 1-alpha),
+                          increment = i))
+  }
+```
+
+```{r power plots , warning = FALSE}
+plot(distance ,powers, col = "blue",type = "l")
+```
