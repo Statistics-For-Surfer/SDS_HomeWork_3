@@ -1,5 +1,6 @@
 rm(list = ls())
 load("hw3_data.RData")
+
 # Scale dataset -----------------------------------------------------------
 scale_datasets_list <- function(ls){
   scaled_list <- list()
@@ -13,6 +14,7 @@ scale_datasets_list <- function(ls){
   }
   return(scaled_list)
 }
+
 # Scale the dataset
 td_scale <- scale_datasets_list(td_data)
 asd_scale <- scale_datasets_list(asd_data)
@@ -24,7 +26,6 @@ sort( table( sapply(asd_scale, function(x) nrow(x)) ), decreasing = T )
 ## Plot times series
 
 library(manipulate)
-
 manipulate(plot(asd_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "skyblue", lwd = 2, 
                 xlab = 'observations', ylab = 'value'),
            patient = slider(1,length(asd_data)), region = slider(1,116))
@@ -33,9 +34,9 @@ manipulate(plot(asd_data[[patient]][[region]], type='l', main = paste0("Patient-
 manipulate(plot(td_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "darkred" , lwd = 2 ,  
                 xlab = 'observations', ylab = 'value'),
            patient = slider(1,length(td_data)), region = slider(1,116))
+
+
 ####  get the variables
-
-
 list_summary <- function(list, fun){
   
   len <- length(list)
@@ -47,47 +48,48 @@ list_summary <- function(list, fun){
   return(tab)
 }
 
-td_ROI_mean<- list_summary(td_scale, mean)
+td_ROI_mean <- list_summary(td_scale, mean)
 td_ROI_median <- list_summary(td_scale, median)
-td_ROI_sd<- list_summary(td_scale, sd)
+td_ROI_sd <- list_summary(td_scale, sd)
 
 x_data <- cbind(td_ROI_mean,td_ROI_median,td_ROI_sd)
 x_data <- cbind(x_data,rep(0,93)) 
 
 
 
-asd_ROI_mean<- list_summary(asd_scale, mean)
+asd_ROI_mean <- list_summary(asd_scale, mean)
 asd_ROI_median <- list_summary(asd_scale, median)
-asd_ROI_sd<- list_summary(asd_scale, sd)
+asd_ROI_sd <- list_summary(asd_scale, sd)
 
 
 z_data <- cbind(asd_ROI_mean,asd_ROI_median,asd_ROI_sd)
 z_data <- as.data.frame(cbind(z_data,0)) 
 
-names(z_data)
-?cbind.data.frame
-aa <- cbind.data.frame(asd_ROI_mean,asd_ROI_median,asd_ROI_sd,labels())
-names(aa)
+names(z_data)[ncol(z_data)] <- 'label'
+
+
 
 ### Split the dataset
 train_x_data <- z_data[1:60,]
 train_x_data <- as.data.frame(train_x_data)
 dim(train_x_data)
-colnames(train_x_data[length(colnames(train_x_data))]) <- "label"
 typeof(train_x_data)
 test_x_data <- z_data[61:93,]
+
+
 ### Normality distribution
 #[TODO] test the distributions normality
 
 ### Best parameter
-
 mu_x_data <- apply(train_x_data[,1:k] , MARGIN = 2 , mean)
 mu_x_data[is.na(mu_x_data)] <- mean(mu_x_data , na.rm = T)
 sigma_x_data <- cov(train_x_data[,1:k])
 sigma_x_data[is.na(sigma_x_data)] <- 0
-### Friedmann procedure
 
-k <- dim(train_x_data)[2] -1
+
+
+### Friedmann procedure
+k <- dim(train_x_data)[2] - 1
 n0 <-  dim(train_x_data)[1]
 n1 <- dim(z_data)[1]
 
@@ -99,6 +101,7 @@ Take_sample_normal <- function(n, mu, sigma, label){
   
   return(x)
 }
+
 Friedman_procedure <- function(P,xdata,zdata){
   kolm_t <- rep(NA, P)
   for(i in 1:P){
