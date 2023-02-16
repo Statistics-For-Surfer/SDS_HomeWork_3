@@ -59,7 +59,7 @@ sigmoid <- function(x, theta){
   return(n / (1+n))
 }
 
-
+?ks.test()
 
 mu <- generate_mean(k)
 sigma <- generate_sigma(k)
@@ -140,7 +140,12 @@ barplot(prop.table(table(data$`Kolmogorov-Smirnov`)), col = c("red" , "blue"), m
 
 
 
-?ks.test()
+# Generate x-axis values from 0 to 1
+x <- seq(0, 1, length.out = 1000)
+
+# Plot the Kolmogorov distribution CDF
+plot(x, pkolmogorov(x), type = "l", xlab = "x", ylab = "CDF",
+     main = "Kolmogorov Distribution CDF")
 
 # Simulation to get info about POWER --------------------------------------
 
@@ -213,8 +218,11 @@ for(l in M){
   
 }
 
-results <- as.data.frame(results)
+install.packages('caTools')
 
+install.packages('e1071')
+library(e1071)
+?svm
 par(mfrow = c(1,1))
 plot(results$Distance, results$K_S, type = 'l', main='Relation between distance and power', lwd=2, col='skyblue', xlab='Distance', ylab='Power')
 points(results$Distance, results$Mann, type = 'l', main='Relation between distance and power', lwd=2, col='lightgreen')
