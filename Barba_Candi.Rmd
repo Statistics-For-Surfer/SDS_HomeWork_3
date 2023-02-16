@@ -96,6 +96,7 @@ n1 <- 70  # Sample size 1
 alpha <- .05 # significance level
 set.seed(324)# reproducibility
 P <- 1000
+acc_rej_col <- c("#d3305d" , "#ABCDEF")
 ```
 
 ```{r sample normal}
@@ -136,12 +137,13 @@ u <- rbind(x, z) # Actual data
 In order to get the distribution of the Kolmogorov-Smirnov statistic under the null hypopthesis, we implement the Friedman's procedure, supposing a reference distribution $p_{0}$ that have generated the $\underline{z}$ sample. Under the null hypothesis $p_{0}$ has the same distribution than the one that have generated the $\underline{x}$ sample. After have implemented the Friedmann's procedure we end with $t_{1} \dots t_{P}$ kolmogorov statistics that can be used as the distribution of statistic test under the null hypothesis. So we can build the reject region $R_{\alpha}$ as the values of the test statistic  greater than a threshold equal $1 - \alpha$ quantile of the distribution. We reject with significance level $\alpha$ if the observed statistics is greater than the threshold.
 
 ```{r permutation test, warning= FALSE}
+
 permutation_test <- function(P){
   label0 <- rep(0,n0)
   label1 <- rep(1,n1)
   labels <- c(label0,label1)
   per_kolm <- rep(NA, P)
-  for(i in 1:permut){
+  for(i in 1:P){
     idx <- sample(x = 1:(n0+n1), size = n0+n1)
     u$label <- labels[idx]
     glm_model <- glm(label ~ ., data = u ,maxit= 100)
@@ -210,13 +212,12 @@ alpha_info <- function(P, percentile_kolm){
     z_scores <- predict(glm_model,  z_p[,1:k])
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
     prop_rej[i] <- true_kolm < percentile_kolm
-    p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided",simulate.p.value= T	
-)$p.value
+    #p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$p.value
    
   }
   
-  data = as.data.frame(cbind(prop_rej,p_values))
-  colnames(data) <- c("KS", "pvalues")
+  data = as.data.frame(prop_rej)
+  colnames(data) <- c("KS")
   
   return(data)
 }
@@ -226,9 +227,8 @@ data <- alpha_info(P = P, percentile_kolm = permutation_quantile)
 ```
 
 ```{r alpha power}
-
 t <- proportions(table(data[,1]))
-barplot(t, col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
+barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 ```
 
 ```{r p_values}
@@ -239,3 +239,30 @@ hist(data[,2] , freq = F , main = "empirical p-values distribution", col = "cyan
 
 
 ### Changing size \alpha
+
+```{r changing alpha, changing n0, warning=FALSE}
+n0s <- c(20,50,70,100)
+k <- 10
+P <- 100
+alpha_permutation <- rep(NA ,length(n0s) )
+alpha_Friedmann <- rep(NA ,length(n0s) )
+for(i in 1:length(n0s)){
+  n0 <- n0s[i]
+  mu <- generate_mean(k)
+  sigma <- generate_sigma(k)
+  x <- Take_sample_normal(n = n0 , mu = mu , sigma = sigma, label = 0)
+  z <- Take_sample_normal(n = n1 , mu = mu , sigma = sigma, label = 1)
+  u <- rbind(x, z) # Actual data
+  per_kolm <- permutation_test(P)
+  p_kolm <-   Friedman_procedure(P)
+  alpha_permutation[i] <- 1-mean(alpha_info(P, percentile_kolm = quantile(per_kolm , 1 - alpha))$KS)
+  alpha_Friedmann[i] <- 1-mean(alpha_info(P, percentile_kolm = quantile(p_kolm , 1 - alpha))$KS)
+  }
+
+
+```
+```{r changing alpha, changing }
+ks <- c(5,20,70,100)
+n0 <- 
+```
+
