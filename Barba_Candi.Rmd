@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r Packages , warning = FALSE}
 rm(list = ls())
 #load packages
-packs <- c('MASS', 'pracma', 'psych','caTools','e1071')
+packs <- c('MASS', 'pracma', 'psych','caTools','e1071',"dgof")
 lapply(packs, require, character.only = TRUE)
 ```
 ## Purpose and Statistical tools used
@@ -166,32 +166,6 @@ Friedman_procedure <- function(P,x,z){
 
 ```
 
-```{r meta test, warning = FALSE}
-
-
-meta_test <- function(P,x,z){
-  u_obs <- rbind(x,z)
-  labels <- c(rep(0,n0),rep(1,n1))
-  meta_kolm <- rep(NA, P)
-  for(i in 1:P){
-    idx <- sample(x = 1:(n0+n1) , size = n0+n1)
-    z_p <- Take_sample_normal(n1,mu = mu, sigma = sigma , label = 1)
-    u <- rbind(x,z_p)
-    u$label <- labels[idx]
-    glm_model <- glm(label ~ ., data = u)
-    scores <- predict(glm_model , u_obs[,1:k])
-    meta_kolm[i] <- ks.test(scores[u$label == 0],scores[u$label == 1])$statistic
-  }
-  return(meta_kolm)
-}
-
-x <- Take_sample_normal(n0,mu = mu , sigma = sigma, label = 0)
-z <- Take_sample_normal(n1,mu = mu , sigma = sigma, label = 1)
-meta_k <- meta_test(P = P , x = x , z = z)
-
-
-
-```
 
 
 ```{r histo, warning=FALSE}
@@ -217,7 +191,7 @@ alpha_info <- function(P){
     z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
     u_p<- rbind(x_p, z_p) # Combine the data
     
-    kk <- Friedman_procedure(P,x_p,z_p) # As mavi said
+    kk <- Friedman_procedure(P,x = x_p,z_p = z) # As mavi said
     glm_model <-glm(label ~ ., data = u_p)
     
     x_scores <- predict(glm_model , x_p[,1:k])
@@ -225,17 +199,16 @@ alpha_info <- function(P){
     
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
     prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)
-    p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$p.value
-   
+
   }
   
-  data = as.data.frame(cbind(prop_rej,p_values))
+  data = as.data.frame(prop_rej)
   colnames(data) <- c("KS","p")
   
   return(data)
 }
 
-data <- alpha_info(P = P)
+#data <- alpha_info(P = P)
 
 ```
 
@@ -245,30 +218,16 @@ barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n t
 ```
 
 
-```{r pps}
-sum(data$p > 0.05 )/ length(data$p)
-hist(data$p,breaks = 8)
-```
-
 ### Changing size \alpha
 
 ```{r changing alpha, changing n0, warning=FALSE}
 n0s <- c(20,50,70,100)
 k <- 10
 P <- 100
-alpha_permutation <- rep(NA ,length(n0s) )
 alpha_Friedmann <- rep(NA ,length(n0s) )
 for(i in 1:length(n0s)){
   n0 <- n0s[i]
-  mu <- generate_mean(k)
-  sigma <- generate_sigma(k)
-  x <- Take_sample_normal(n = n0 , mu = mu , sigma = sigma, label = 0)
-  z <- Take_sample_normal(n = n1 , mu = mu , sigma = sigma, label = 1)
-  u <- rbind(x, z) # Actual data
-  per_kolm <- permutation_test(P)
-  p_kolm <-   Friedman_procedure(P)
-  alpha_permutation[i] <- 1-mean(alpha_info(P, percentile_kolm = quantile(per_kolm , 1 - alpha))$KS)
-  alpha_Friedmann[i] <- 1-mean(alpha_info(P, percentile_kolm = quantile(p_kolm , 1 - alpha))$KS)
+  alpha_Friedmann[i] <- 1-mean(alpha_info(P))
   }
 
 
