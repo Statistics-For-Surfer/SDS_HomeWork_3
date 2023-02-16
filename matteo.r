@@ -1,98 +1,3 @@
-rm(list=ls())
-
-load("hw3_data.RData")
-
-
-
-
-# Scale dataset -----------------------------------------------------------
-scale_datasets_list <- function(ls){
-  scaled_list <- list()
-  names <- names(ls)
-  for(i in 1:length(ls)){
-    
-    #### Scaling by column.
-    patient <- data.frame(apply(ls[[i]], 2, scale))
-    colnames(patient) <- colnames(ls[[i]])
-    scaled_list[[names[i]]] <- patient
-  }
-  return(scaled_list)
-}
-
-td_scale <- scale_datasets_list(td_data)
-asd_scale <- scale_datasets_list(asd_data)
-
-
-
-# Frequency of number observation  ----------------------------------------
-
-# Count how many patients in the ASD group have time series of a given length
-sort( table( sapply(td_scale, function(x) nrow(x)) ), decreasing = T )
-sort( table( sapply(asd_scale, function(x) nrow(x)) ), decreasing = T )
-
-
-
-
-# Plot of time series of each ROI for each patient -------------------------
-
-library(manipulate)
-
-manipulate(plot(asd_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "skyblue", lwd = 2, 
-                xlab = 'observations', ylab = 'value'),
-           patient = slider(1,length(asd_data)), region = slider(1,116))
-
-
-manipulate(plot(td_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "darkred" , lwd = 2 ,  
-                xlab = 'observations', ylab = 'value'),
-           patient = slider(1,length(td_data)), region = slider(1,116))
-
-
-
-# Take summaries of ROI's patients -----------------------------------------
-list_summary <- function(list, fun){
-  
-  len <- length(list)
-  tab <- matrix(NA, nrow = len, ncol = 116)
-
-  for(i in 1:len){
-    tab[i,] <- unname(sapply(list[[i]], fun))  }
-
-  return(tab)
-}
-
-
-
-
-
-td_ROI_mean<- list_summary(td_scale, mean)
-td_ROI_sd<- list_summary(td_scale, sd)
-
-
-
-b <- list_summary(asd_scale, mean)
-
-a <- cbind(a, rep(0, nrow(a)))
-b <- cbind(b, rep(0, nrow(b)))
-
-
-
-
-
-
-
-library(corrplot)
-corrplot(cor(asd_data[[1]]), order="hclust")
-
-
-
-
-
-
-
-
-
-
-
 
 
 # EXERCISE 3 --------------------------------------------------------------
@@ -110,11 +15,8 @@ packs <- c('MASS', 'pracma', 'psych')
 lapply(packs, require, character.only = TRUE)
 
 
-# Input.
-k <- 5 # Dimensions
-n0 <- 80  # Sample size 0
-n1 <- 90  # Sample size 1
-alpha <- .05 # significance level
+
+
 
 
 # Reproducibility.
@@ -131,104 +33,70 @@ Take_sample_normal <- function(n, mu, sigma, label){
 }
 
 
-# Generate k random means.
-generate_mean <- function(k){
-  
-  return(sample(1:10, k, replace = T))
-}
-
-
-# Generate random Covariance matrix (k*k).
-generate_sigma <- function(k){
-  sym_mat <- matrix(1, ncol = k, nrow = k, byrow = TRUE)
-  diag_mat <- diag(rep(1.5, k))
-  sigma <- diag_mat + sym_mat
-  
-  return(sigma)
-}
-
-
-# Sigmoid Function.
-sigmoid <- function(x, theta){
-  n_features <- length(theta)
-  n <- exp(theta[1] + sum(x[-length(x)]*theta[2:n_features]))
-  
-  return(n / (1+n))
-}
-
-
-
-mu <- generate_mean(k)
-sigma <- generate_sigma(k)
-
-x <- Take_sample_normal(n = n0, mu=mu, sigma = sigma, label = 0)
-z <- Take_sample_normal(n = n1, mu=mu, sigma = sigma, label = 1)
-u <- rbind(x, z) # Actual data
-
-
-
-
-# Friedman Procedure ------------------------------------------------------
-
-P <- 1000
-
-Friedman_procedure <- function(P){
-  
+Friedman_procedure <- function(P, xdata){
   kolm_t <- rep(NA, P)
-  
   for(i in 1:P){
-    z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
-    u_p <- rbind(x, z_p)
-    glm_coef <- unname(glm(label ~ ., data = u_p)$coefficients)
-    x_scores <- apply(x, MARGIN = 1, sigmoid, theta = glm_coef)
-    z_scores <- apply(z_p, MARGIN = 1, sigmoid, theta = glm_coef) 
+    z_p <- Take_sample_normal(n1, mu, sigma, label = 1) # Under H_0
+    u_p <- rbind(xdata, z_p)
+    glm_model <-glm(label ~ ., data = u_p)
+    x_scores <- predict(glm_model , xdata[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
     kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
   }
-  kolm_t <<- kolm_t
   
-  hist(kolm_t, main = "
-       Kolmogorov-Smirnov statistic \n distribution under H_0",
-       col = "skyblue", border = "white", breaks= 30)
-  p_kolm <<- quantile(kolm_t , 1 - alpha)
-  abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
-  box()
+  return(kolm_t)
 }
 
-Friedman_procedure(P)
 
-
-# Simulation to get info about ALPHA --------------------------------------
-
-alpha_info <- function(P, percentile_kolm){
-  prop_rej <- rep(NA, P)
-  for(i in 1:P){
-    x <- Take_sample_normal(n = n0, mu=mu, sigma = sigma, label = 0)  
-    z <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
-    u <- rbind(x, z) # Combine the data
-    true_coef <- glm(label ~ ., data = u)$coefficients
-    x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
-    z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
-    true_kolm <- ks.test(x_scores ,z_scores, alternative = "two.sided")$statistic
-    # Perform the Test
-    prop_rej[i] <- true_kolm < percentile_kolm
+alpha_info <- function(M, P){
+  prop_rej <- rep(NA, M)
+  p_values <- rep(NA , M)
+  
+  for(i in 1:M){
+    x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
+    z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1) 
+    u_p<- rbind(x_p, z_p) 
+    
+    kk <- Friedman_procedure(P, xdata  = x_p, zdata = z_p) 
+    glm_model <-glm(label ~ ., data = u_p)
+    
+    x_scores <- predict(glm_model , x_p[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
+    
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    prop_rej[i] <- true_kolm < quantile(kk, 1 - alpha)
   }
-
+  
   return(prop_rej)
 }
 
 
-data <- alpha_info(P = P, percentile_kolm = p_kolm)
 
-barplot(prop.table(table(data)), col = c("red" , "blue"), main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
+# Input.
+k <- 5 
+P <- 100
+M <- 100
+n0 <- 80  
+n1 <- 90  
+alpha <- .05 
+
+
+mu <- rep(0, k)
+sigma <- diag(1, k)
 
 
 
 
 
 
-# Simulation to get info about POWER --------------------------------------
+# alpha_Friedmann <- rep(NA, length(n0s))
+# for(i in 1:length(n0s)){
+#   n0 <- n0s[i]
+#   alpha_Friedmann[i] <- 1-mean(alpha_info(P))
+# }
 
-# Distance functions.
+
+
 beta_q <- function(sigma1, sigma2){
   trace_1 <- tr(sigma)
   trace_2 <- tr(sigma2)
@@ -246,135 +114,62 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 
 
 
-power_info <- function(P, k, percentile_ks, increment){
-  mu2 <- mu + increment 
-  sigma2 <- sigma
-  distance <- Wasserstein_distance(mu, mu2, sigma, sigma2)
-  prop_ks <- rep(NA, P)
-  for(i in 1:P){
+power_info <- function(M, P, n0, n1, mu, mu2, sigma, sigma2){
+  
+  prop_ks <- rep(NA, M)
+  dist <- Wasserstein_distance(mu, mu2, sigma, sigma2)
+  
+  for(i in 1:M){
     x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
-    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
-    u <- rbind(x,z) 
-    true_coef <- glm(label ~ ., data = u)$coefficients
-    x_scores <- apply(x, MARGIN = 1, sigmoid, theta = true_coef)
-    z_scores <- apply(z, MARGIN = 1, sigmoid, theta = true_coef)
+    z <- Take_sample_normal(n = n1, mu= mu2, sigma = sigma2, label = 1)
+    u <- rbind(x, z) 
+    
+    p_model <- glm(label ~ ., data = u)
+    x_scores <- predict(p_model, x)
+    z_scores <- predict(p_model, z) 
+    
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    prop_ks[i] <- true_kolm > percentile_ks
+    kk <- Friedman_procedure(P, x)
+    prop_ks[i] <- true_kolm > quantile(kk, 1-alpha)
   }
-  data <- c(distance, mean(prop_ks))
-  names(data) <- c('Distance', 'K_S')
+  data <- c(dist, mean(prop_ks))
   
   return(data)
 }
 
-k <- 5
-mu <- 1:k
-sigma <- generate_sigma(length(mu))
-power_info(1000, k = length(mu), percentile_ks = p_kolm, increment = 10)
 
 
 
+k <- 100
+P <- 100
+M <- 10
+n0 <- 80  
+n1 <- 90  
+alpha <- .05 
+
+ns <- c(20, 40, 60, 80, 100)
+ks <- c(5, 20, 50, 100)
+colors <- c('skyblue', 'lightgreen', 'orchid', 'darkorange')
 
 
-# Plot
-n0 <- 200
-n1 <- 200
+mu <- rep(0, k)
+sigma <- diag(1, k)
 
-P <- 1000
-k <- 50
-M <- seq(0, .5, .05)
-mu <- generate_mean(k)
-sigma <- generate_sigma(length(mu))
 
-Wasserstein_distance(mu, mu+.5, sigma, sigma)
+grid <- seq(0, .4, .1)
 
-results <- matrix(NA, ncol = 2, nrow = 0)
 
-for(l in M){
-  a <- power_info(P, k = length(mu), percentile_ks = p_kolm, increment = l)
-  results <- rbind(results, a)
+
+distance_k <- matrix(NA, 0, 2)
+
+for(i in grid){
+  print(i)
+  power_k <- power_info(M, P, n0, n1, mu, mu+i, sigma, sigma)
+  distance_k <- rbind(distance_k, power_k)
 }
 
-results <- as.data.frame(results)
+plot(distance_k, xlim=c(0,8), main = "Relation between distance and power\n for different k's", xlab='k', ylab='power', las=1, type='l', lwd=3, col=colors[k])
 
-plot(results$Distance, results$K_S, type = 'l', main=paste0("Relation between Distance and Test's Power \n with k = ", k), lwd=3, col='skyblue', xlab='Distance', ylab="Test's Power", las=1, xlim=c(0,10))
-abline(h=1, lty =3)
+legend('bottomright', col=colors, legend=ks, lwd=3)
 
-
-k20_n200 <- results
-
-
-
-
-
-
-
-colors <- c('skyblue', 'lightgreen', 'orchid', 'darkorange')
-par(mfrow=c(2,2))
-
-### k = 2
-plot(0:10, seq(0, 1, .1), type='n', ylim=c(0,1), main="Relation between Distance and Test's Power\n k = 2", xlab='Distance', ylab="Test's Power")
-points(k2_n20, type='l', col=colors[1], lwd=2)
-points(k2_n50, type='l', col=colors[2], lwd=2)
-points(k2_n100, type='l', col=colors[3], lwd=2)
-points(k2_n200, type='l', col=colors[4], lwd=2)
-abline(h=1, lty =3)
-
-legend('bottomright', legend = c(20, 50, 100, 200), col = colors, lwd=3, title='n0 & n1', bty = "n")
-
-
-
-
-### k = 5
-plot(0:10, seq(0, 1, .1), type='n', ylim=c(0,1), main="Relation between Distance and Test's Power\n k = 5", xlab='Distance', ylab="Test's Power")
-points(k5_n20, type='l', col=colors[1], lwd=2)
-points(k5_n50, type='l', col=colors[2], lwd=2)
-points(k5_n100, type='l', col=colors[3], lwd=2)
-points(k5_n200, type='l', col=colors[4], lwd=2)
-abline(h=1, lty =3)
-
-legend('bottomright', legend = c(20, 50, 100, 200), col = colors, lwd=3, title='n0 & n1', bty = "n")
-
-
-
-
-### k = 10
-plot(0:10, seq(0, 1, .1), type='n', ylim=c(0,1), main="Relation between Distance and Test's Power\n k = 10", xlab='Distance', ylab="Test's Power")
-points(k10_n20, type='l', col=colors[1], lwd=2)
-points(k10_n50, type='l', col=colors[2], lwd=2)
-points(k10_n100, type='l', col=colors[3], lwd=2)
-points(k10_n200, type='l', col=colors[4], lwd=2)
-abline(h=1, lty =3)
-
-legend('bottomright', legend = c(20, 50, 100, 200), col = colors, lwd=3, title='n0 & n1', bty = "n")
-
-
-
-### k = 20
-plot(0:10, seq(0, 1, .1), type='n', ylim=c(0,1), main="Relation between Distance and Test's Power\n k = 20", xlab='Distance', ylab="Test's Power")
-points(k20_n20, type='l', col=colors[1], lwd=2)
-points(k20_n50, type='l', col=colors[2], lwd=2)
-points(k20_n100, type='l', col=colors[3], lwd=2)
-points(k20_n200, type='l', col=colors[4], lwd=2)
-abline(h=1, lty =3)
-
-legend('bottomright', legend = c(20, 50, 100, 200), col = colors, lwd=3, title='n0 & n1', bty = "n")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Wasserstein_distance(mu, mu+.3, sigma, sigma)
