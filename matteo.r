@@ -369,6 +369,8 @@ legend('bottomright', legend = c(20, 50, 100, 200), col = colors, lwd=3, title='
 
 
 
+packs <- c('MASS', 'pracma', 'psych','caTools','e1071')
+lapply(packs, require, character.only = TRUE)
 
 
 
@@ -376,5 +378,360 @@ legend('bottomright', legend = c(20, 50, 100, 200), col = colors, lwd=3, title='
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+k <- 5 # Dimensions
+n0 <- 100  # Sample size 0
+n1 <- 100  # Sample size 1
+alpha <- .05 # significance level
+set.seed(123)# reproducibility
+P <- 1000
+acc_rej_col <- c("#d3305d" , "#ABCDEF")
+
+
+Take_sample_normal <- function(n, mu, sigma, label){
+  x <- mvrnorm(n, mu, sigma)
+  x <- as.data.frame(cbind(x, label))
+  colnames(x[length(colnames(x))]) <- "label"
+  
+  return(x)
+}
+
+
+
+mu <- rep(0,k)
+sigma <- diag(1 ,k)
+
+
+Friedman_procedure <- function(P,x,z){
+  kolm_t <- rep(NA, P)
+  for(i in 1:P){
+    z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
+    u_p <- rbind(x, z_p)
+    glm_model <- glm(label ~ ., data = u_p)
+    x_scores <- predict(glm_model, x[,1:k])
+    z_scores <- predict(glm_model, z_p[,1:k])
+    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+  }
+  
+  return(kolm_t)
+  
+}
+
+
+
+P <- 1
+alpha_info <- function(M){
+  prop_rej <- rep(NA, M)
+  p_values <- rep(NA , M)
+  
+  for(i in 1:M){
+    x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
+    z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
+    u_p<- rbind(x_p, z_p) # Combine the data
+    
+    kk <- Friedman_procedure(P,x_p,z_p) # As mavi said
+    glm_model <- glm(label ~ ., data = u_p)
+    
+    x_scores <<- predict(glm_model , x_p[,1:k])
+    z_scores <<- predict(glm_model,  z_p[,1:k])
+    
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    prop_rej[i] <- true_kolm < quantile(kk , 1 - alpha)
+    p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$p.value
+    
+  }
+  
+  data = as.data.frame(cbind(prop_rej,p_values))
+  colnames(data) <- c("KS","p")
+  
+  return(data)
+}
+
+data <- alpha_info(P = P)
+
+
+hist(data$p)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# NEW TRy -----------------------------------------------------------------
+packs <- c('MASS', 'pracma', 'psych','caTools','e1071', 'dplyr')
+lapply(packs, require, character.only = TRUE)
+
+
+
+k <- 5 # Dimensions
+n0 <- 200  # Sample size 0
+n1 <- 200  # Sample size 1
+alpha <- .05 # significance level
+set.seed(324)# reproducibility
+P <- 100
+acc_rej_col <- c("#d3305d" , "#ABCDEF")
+
+mu <- rep(0,k)
+sigma <- diag(1 ,k)
+
+
+Take_sample_normal <- function(n, mu, sigma, label){
+  x <- mvrnorm(n, mu, sigma)
+  x <- as.data.frame(cbind(x, label))
+  colnames(x[length(colnames(x))]) <- "label"
+  
+  return(x)
+}
+
+
+
+
+Fried <- function(P,x){
+  
+  kolm_t <- rep(NA, P)
+  
+  for(i in 1:P){
+    z_l <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)
+    u <- rbind(x, z_l)
+    
+    model <- glm(label ~ ., data = sample_n(u, ((n1 + n0) * .8)))
+    x_scores <- predict(model, x[,1:k])
+    z_scores <- predict(model, z_l[,1:k])
+    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+  
+  }
+  
+  return(kolm_t)
+
+}
+
+x <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)
+a <- Fried(P, x)
+
+
+
+
+P <- 15
+alpha_info <- function(P){
+  prop_rej <- rep(NA, P)
+  p_values <- rep(NA , P)
+  
+  for(i in 1:P){
+    
+    x <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
+    
+    z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
+    u <- rbind(x, z_p) # Combine the data
+    
+    kk <- Fried(100,x) # As mavi said
+    
+    label0 <- rep(0,n0)
+    label1 <- rep(1,n1)
+    labels <- c(label0,label1)
+    per_kolm <- rep(NA, P)
+
+    idx <- sample(x = 1:(n0+n1), size = n0+n1)
+    u$label <- labels[idx]
+    glm_model <- glm(label ~ ., data = u ,maxit= 100)
+    scores <- predict(glm_model , u[,1:k])
+    p_values[i] <- ks.test(scores[u$label == 0],scores[u$label == 1])$p.value
+
+    
+    
+    # glm_model <- glm(label ~ ., data = u_p, maxit = 10)
+    # 
+    # x_scores <- predict(glm_model , x[,1:k])
+    # z_scores <- predict(glm_model,  z_p[,1:k])
+    # 
+    # test <- wilcox.test(x_scores, z_scores, alternative = "two.sided")
+    # true_kolm <- test$statistic
+    # 
+    # prop_rej[i] <- true_kolm < quantile(kk , 1 - alpha)
+    # p_values[i] <- test$p.value
+    
+  }
+  
+  data = as.data.frame(cbind(prop_rej,p_values))
+  colnames(data) <- c("KS","p")
+  
+  return(data)
+}
+
+data <- alpha_info(P = P)
+
+hist(data$p)
+data$p
+mean(data$p < .05)
+
+
+
+
+
+
+
+
+
+Take_sample_normal <- function(n, mu, sigma, label){
+  x <- mvrnorm(n, mu, sigma)
+  x <- as.data.frame(cbind(x, label))
+  colnames(x[length(colnames(x))]) <- "label"
+  
+  return(x)
+}
+
+
+
+
+M <- 1000
+
+k <- 20
+mu <- rep(0, k)
+sigma <- diag(1, k)
+
+n0 <- 40
+n1 <- 50
+
+x <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 1)
+
+t <- rep(NA, M)
+s <- rep(NA, M)
+
+for(i in 1:M){
+  z <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 0)
+  
+  
+  u <- rbind(x, z)
+  idx <- sample(x = 1:(n0+n1), size = n0+n1)
+  u$label <- u$label[idx]
+  
+  model <- glm(label ~ ., data = u)
+  
+  x_scores <- predict(model, x)
+  z_scores <- predict(model, z)
+  
+  
+  t[i] <- ks.test(x_scores, z_scores)$p.value
+  s[i] <- ks.test(x_scores, z_scores)$statistic
+
+  }
+
+
+mean(t < .05)
+hist(t)
+
+D <- 1.358 * sqrt((n0+n1)/(n0*n1))
+mean(s > D)
+D
+
+
+
+
+
+# FINAL -------------------------------------------------------------------
+
+Take_sample_normal <- function(n, mu, sigma, label){
+  x <- mvrnorm(n, mu, sigma)
+  x <- as.data.frame(cbind(x, label))
+  colnames(x[length(colnames(x))]) <- "label"
+  
+  return(x)
+}
+
+
+
+k <- 5 # Dimensions
+n0 <- 70  # Sample size 0
+n1 <- 70  # Sample size 1
+alpha <- .05 # significance level
+set.seed(324)# reproducibility
+
+M <- 100
+P <- 100
+acc_rej_col <- c("#d3305d" , "#ABCDEF")
+
+mu <- rep(0,k)
+sigma <- diag(1 ,k)
+
+
+Friedman_procedure <- function(P,x,z){
+  kolm_t <- rep(NA, P)
+  for(i in 1:P){
+    z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
+    u_p <- rbind(x, z_p)
+    glm_model <-glm(label ~ ., data = u_p)
+    x_scores <- predict(glm_model , x[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
+    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+  }
+  
+  return(kolm_t)
+  
+}
+
+
+alpha_info <- function(M){
+  prop_rej <- rep(NA, M)
+  
+  for(i in 1:M){
+    x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
+    z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
+    u_p<- rbind(x_p, z_p) # Combine the data
+    
+    kk <- Friedman_procedure(P,x_p,z_p) # As mavi said
+    glm_model <-glm(label ~ ., data = u_p)
+    
+    x_scores <- predict(glm_model , x_p[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
+    
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    prop_rej[i] <- true_kolm < quantile(kk , 1 - alpha)
+    
+  }
+  
+  return(prop_rej)
+}
+
+
+prop_alpha <- alpha_info(M)
+
+t <- proportions(table(prop_alpha))
+barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n H0 when is actually true \n using KS statistic", ylim = c(0,1), names.arg = c("Reject" , "Accept"))
+
+
+
+
+ks <- c(5,20,50,75,100)
+
+alpha_k <- c()
+for(k in ks){
+  print(k)
+  mu <- rep(0,k)
+  sigma <- diag(1,k)
+  alpha <- 1 - mean(alpha_info(M))
+  alpha_k <- c(alpha_k, alpha)
+  
+}
+
+
+plot(ks, alpha_k, type='b', col='gold3', pch=16)
 
 

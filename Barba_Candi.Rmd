@@ -224,7 +224,7 @@ alpha_info <- function(P){
     z_scores <- predict(glm_model,  z_p[,1:k])
     
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)
+    prop_rej[i] <- true_kolm < quantile(kk , 1 - alpha)
     p_values[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$p.value
    
   }

@@ -169,7 +169,7 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 n0 <- 100
 n1 <- 100
 
-power_info <- function(P, k, percentile_ks, increment){
+power_info <- function(P, k, percentile_ks, percentile_mann, increment){
   mu2 <- mu + increment 
   sigma2 <- sigma
   distance <- Wasserstein_distance(mu, mu2, sigma, sigma2)
