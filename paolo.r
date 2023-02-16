@@ -145,7 +145,7 @@ power_info <- function(P, k, increment){
   return(data)
 }
 
-
+?glm
 ##########
 P <- 100
 k <- 5
@@ -165,6 +165,12 @@ for (i in (ll)){
 plot(distance,powers,col = 'darkblue' , type = "o" , lwd = 2)
 
 Wasserstein_distance(mu, mu +1.5 , sigma, sigma)
+####
+
+###
+
+
+###
 
 #######
 #######
