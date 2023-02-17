@@ -1,0 +1,403 @@
+---
+
+---
+title: "Statistics for Data Science - Homework 2"
+author: "Barba Paolo, Candi Matteo"
+output: html_document
+---
+<style type="text/css">
+body, td {
+   font-size: 14px;
+}
+code.r{
+  font-size: 12px;
+}
+pre {
+  font-size: 12px
+}
+</style>
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Packages , warning = FALSE}
+rm(list = ls())
+#load packages
+packs <- c('MASS', 'pracma', 'psych','caTools','e1071',"dgof",'r2symbols)')
+lapply(packs, require, character.only = TRUE)
+```
+## Purpose and Statistical tools used
+
+The goal of the project is to perform Friedman's procedure as a proxy of
+multiple studies and applyi it on fMRI (functional magnetic resonance
+imaging) data in order to test wheter the data from td (tipacally
+develpment) subjects and asd (authism spectrum disorder) subject came
+from the same distribution or not. In order to reach this goal we used
+statistical tools as machine learning algorithm and two-sample
+Hypothesis testing.
+
+## Exercise 3
+
+Friedman's procedure is used for solving two-sample hypothesis testing
+when the each observation consists of many measured attributes
+$x_{i} = x_{i_1}, x_{i_2} . . . x_{i_{M}}$ and
+$z_{i} = z_{i_1}, z_{i_2} . . . z_{i_{M}}$ where M is the dimensionality
+of the dataset and we have $n_{0}$ samples for $\underline{x}$ and
+$n_{1}$ samples for $\underline{z}$. We create then a hypothesis system
+as the following:
+
+\begin{equation}
+
+\begin{cases}
+
+H_{0}: F_{x} = F_{z}\\ H_{1}: F_{x} \neq F_{z}
+
+\end{cases}
+
+\end{equation}
+
+Since the distribution we want to compare are multivariate ones, there are not variety of procedures that can compare them directly. The idea then, is to perform classification machine learning algorithm as logistic regression. Then compute the scores of the observed data $\underline{s_{x}}$ and  $\underline{s_{z}}$ and compare the univariate distribuion of them using two sample hypothesis test as Kolmogorov-Smirnov. So the hypothesis system would be as the following:
+
+
+\begin{equation}
+
+\begin{cases}
+
+H_{0}: F_{s_{x}} = F_{s_{z}}\\ H_{1}: F_{s_{x}} \neq F_{s_{z}}
+
+\end{cases}
+
+\end{equation}
+
+
+When the same data is used for both training and subsequent scoring, these univariate null distributions are not valid.
+To solve this Friedman had proposed the following procedure to compute the distribution of the statistical test under H0:
+Suppose that the sample $z_{i}$ came from a reference distribution (say $p_{0}$).
+
+
+• Drawn a sample of size n1 from p0.
+
+• Use them with the actual data to train the classification model and compute the scores.
+
+• Compute the statistics test between the two scores sample.
+
+• Repeat P times.
+
+
+
+
+```{r parameters}
+k <- 5 # Dimensions
+n0 <- 70  # Sample size 0
+n1 <- 70  # Sample size 1
+alpha <- .05 # significance level
+set.seed(324)# reproducibility
+P <- 10
+acc_rej_col <- c("#d3305d" , "#ABCDEF")
+```
+
+```{r sample normal}
+# Take random sample from a multi-normal distribution.
+Take_sample_normal <- function(n, mu, sigma, label){
+  x <- mvrnorm(n, mu, sigma)
+  x <- as.data.frame(cbind(x, label))
+  colnames(x[length(colnames(x))]) <- "label"
+  
+  return(x)
+}
+
+
+
+mu <- rep(0,k)
+sigma <- diag(1 ,k)
+
+```
+
+
+In order to get the distribution of the Kolmogorov-Smirnov statistic under the null hypopthesis, we implement the Friedman's procedure, supposing a reference distribution $p_{0}$ that have generated the $\underline{z}$ sample. Under the null hypothesis $p_{0}$ has the same distribution than the one that have generated the $\underline{x}$ sample. After have implemented the Friedmann's procedure we end with $t_{1} \dots t_{P}$ kolmogorov statistics that can be used as the distribution of statistic test under the null hypothesis. So we can build the reject region $R_{\alpha}$ as the values of the test statistic  greater than a threshold equal $1 - \alpha$ quantile of the distribution. We reject with significance level $\alpha$ if the observed statistics is greater than the threshold.
+
+```{r Friedman_procedure , warning=FALSE}
+Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
+  x_fri <- x_data       # Copy the data
+  z_p <- z_data
+  kolm_t <- rep(NA, P)  # Pre-set the Kolmogorov-Smirnov statistic
+  labels <- c(rep(0,n1),rep(1,n1))   #  Set of the label
+  for(i in 1:P){ 
+    if(permut == F){
+      z_p <- Take_sample_normal(n1, mu, sigma, label =1)
+      } # Under H_0
+    idx <- sample(x = 1:(n0+n1), n0+n1)    # Shuffle the label
+    
+    x_fri$label <- labels[idx[1:n0]]                   # Permuted label
+    z_p$label <- labels[idx[(n0+1):(n0+n1)]]   # Permuted label
+    u_p <- as.data.frame(rbind(x_fri,z_p))             # Row bind the two data frame
+    glm_f <- glm(label~., data = u_p)                  # Train the model
+    scores <- predict(glm_f ,u_p[,1:k])                # Compute the scores
+    
+    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic  # Save the i -th statistics value
+  }
+  return(kolm_t)
+}
+
+``` 
+    
+```{r permutation test, warning=FALSE}
+
+permutation_test <- function(P,u){
+  label0 <- rep(0,n0)
+  label1 <- rep(1,n1)
+  labels <- c(label0,label1)
+  per_kolm <- rep(NA, P)
+  for(i in 1:P){
+    idx <- sample(x = 1:(n0+n1), size = n0+n1)
+    u$label <- labels[idx]
+    glm_model <- glm(label ~ ., data = u ,maxit= 100)
+    scores <- predict(glm_model , u[,1:k])
+    per_kolm[i] <- ks.test(scores[u$label == 0],scores[u$label == 1])$statistic
+  }
+  return(per_kolm)
+}
+
+#per_kolm <- permutation_test(P)
+```
+
+```{r permutation histogram , echo=FALSE}
+permutation_quantile <- quantile(per_kolm , 1-alpha)
+hist(per_kolm , main = "ks distribution",col = 3)
+abline(v = permutation_quantile)
+box()
+```
+
+```{r Friedmann Procedure, warning= FALSE}
+
+
+Friedman_procedure <- function(P,x,z){
+  kolm_t <- rep(NA, P)
+  for(i in 1:P){
+    z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
+    u_p <- rbind(x, z_p)
+    glm_model <-glm(label ~ ., data = u_p)
+    x_scores <- predict(glm_model , x[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
+    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+  }
+  
+  return(kolm_t)
+
+}
+```
+
+
+
+```{r histo, warning=FALSE}
+#kolm_t <- Friedman_procedure(P = P)
+hist(meta_k, main = "
+       Kolmogorov-Smirnov statistic \n distribution under H_0",
+       col = "skyblue", border = "white", breaks= 30)
+p_kolm <- quantile(meta_k , 1 - alpha)
+abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
+box()
+```
+
+After have built the reject region $R_{\alpha}$ we can perform the test as many time as we want to actually get information about the size and the power.
+
+### Info about alpha
+```{r alpha info, warning=FALSE}
+
+
+alpha_info <- function(P , permut = FALSE){
+
+P <- 100
+alpha_info <- function(P){
+  prop_rej <- rep(NA, P)
+  p_values <- rep(NA , P)
+  
+  for(i in 1:P){
+    x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
+    z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
+    u_p<- rbind(x_p, z_p) # Combine the data
+    if(permut == FALSE){
+      kk <- Friedman_procedure(P, x_data = x_p , z_data = z_p)}
+    if(permut == TRUE){
+      kk <- Friedman_procedure(P, x_data = x_p , z_data = z_p , permut = T)
+    }
+    
+
+
+    kk <- Friedman_procedure(P,x = x_p,z_p = z) # As mavi said
+    glm_model <-glm(label ~ ., data = u_p)
+    
+    x_scores <- predict(glm_model , x_p[,1:k])
+    z_scores <- predict(glm_model,  z_p[,1:k])
+    
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)
+
+  }
+  
+
+  data = as.data.frame(cbind(prop_rej,p_values))
+  colnames(data) <- c("KS","p_values")
+  return(data)
+}
+P = 10
+data <- alpha_info(P = P , permut = F)
+
+  data = as.data.frame(prop_rej)
+  colnames(data) <- c("KS","p")
+  
+  return(data)
+}
+
+#data <- alpha_info(P = P)
+
+
+```
+
+```{r alphasss}
+t <- proportions(table(data[,1]))
+barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
+```
+
+
+### Changing size \alpha
+
+```{r changing alpha, changing n0, warning=FALSE}
+
+n0s <- c(20,50,70,100)
+k <- 5
+P <- 10
+alpha_Friedmann <- rep(NA ,length(n0s))
+alpha_per <- rep(NA , length(n0s))
+for(i in 1:length(n0s)){
+  n0 <- n0s[i]
+  alpha_Friedmann[i] <- 1-mean(alpha_info(P)$KS)
+  alpha_per[i] <- 1-mean(alpha_info(P,permut = T)$KS)
+  }
+
+
+```
+
+
+```{r plots change size}
+{plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = "size alpha" ,xlab = "sample size")
+points(n0s , alpha_per , type = "l" , col = "red" , lwd = 2)
+grid()}
+
+```
+
+
+
+```{r changing alpha, changing, warning=FALSE}
+ks <- c(5,20,70,100)
+n0 <- 70
+alpha_permutation_2 <- rep(NA ,length(ks))
+alpha_Friedmann_2 <- rep(NA ,length(ks))
+for(i in 1:length(ks)){
+  k <- ks[i]
+  mu <- rep(0,k)
+  sigma <- diag(1,k)
+  alpha_permutation_2[i] <- 1-mean(alpha_info(P)$KS)
+  alpha_Friedmann_2[i] <- 1-mean(alpha_info(P,permut = T)$KS)
+  }
+  
+```
+
+
+```{r plots alpha, changing, warning=FALSE}
+plot(n0s,alpha_permutation_2, col = "gold",ylim = c(0,1),type = "l")
+points(n0s,alpha_Friedmann_2, col = "blue",type = "l")
+
+```
+
+
+
+
+
+```{r distance function, warning=FALSE}
+# Distance functions.
+beta_q <- function(sigma1, sigma2){
+  trace_1 <- tr(sigma)
+  trace_2 <- tr(sigma2)
+  trace_3 <- tr(sqrtm(sqrtm(sigma1)$B %*% sigma2 %*% sqrtm(sigma1)$B)$B)
+  
+  return(trace_1 + trace_2 - 2*trace_3)
+}
+
+Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
+  norma <- norm(mu1-mu2, type = "2")**2
+  beta_quadro <- beta_q(sigma1, sigma2)
+  
+  return(norma + beta_quadro)
+}
+
+```
+
+
+```{r power info , warning = FALSE}
+
+power_info <- function(P, k, percentile_ks, increment){
+
+  prop_ks <- rep(NA, P)
+  for(i in 1:P){
+    x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
+    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
+    u <- rbind(x,z) 
+    p_model <- glm(label ~ ., data = u)
+    x_scores <- predict(p_model, x)
+    z_scores <- predict(p_model, z) 
+    kolm_obs <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    if(permut == FALSE){
+      kk <- Friedman_procedure(P,x_data = x, z_data = z)
+    }
+    if(permut == TRUE){
+      kk <- Friedman_procedure(P,x_data = x, z_data = z , permut = T)
+    }
+  
+    prop_ks[i] <- kolm_obs > quantile(kk,1-alpha)
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    prop_ks[i] <- true_kolm > percentile_ks
+  }
+  data <-  mean(prop_ks)
+  
+  
+  return(data)
+}
+```
+
+
+```{r power info changing distance , warning = FALSE}
+
+max_in <- .8
+k <- 5
+n0 <- 70
+n1 <- 70
+mu <- rep(0,k)
+sigma <- diag(1,k)
+ll <- seq(from = 0 , to = max_in , by = 0.05)
+
+k <- 5
+mu <- 1:k
+sigma <- generate_sigma(length(mu))
+max_in <- 5
+ll <- seq(from = 0 , to = max_in , by = 0.5 )
+powers <- c()
+powers_2 <- c()
+distance <- c()
+for (i in (ll)){
+  print(i)
+  mu2 <- mu + i 
+  sigma2 <- sigma
+  distance <- c(distance,Wasserstein_distance(mu, mu2, sigma, sigma2))
+
+  powers <- c(powers,power_info(100, k = length(mu),increment = i))
+  powers_2 <- c(powers_2 ,power_info(100, k = length(mu),increment = i , permut = T))
+}
+plot(distance,powers,col = 'darkblue' , type = "o" , lwd = 2)
+points(distance, powers_2 , col = "darkred" , type = "o" , lwd = 2)
+
+```
+
