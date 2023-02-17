@@ -140,7 +140,6 @@ power_info <- function(M, P, n0, n1, mu, mu2, sigma, sigma2){
 
 
 
-k <- 100
 P <- 100
 M <- 10
 n0 <- 80  
@@ -149,14 +148,16 @@ alpha <- .05
 
 ns <- c(20, 40, 60, 80, 100)
 ks <- c(5, 20, 50, 100)
-colors <- c('skyblue', 'lightgreen', 'orchid', 'darkorange')
+colors <- c('cornflowerblue', 'chartreuse3', 'darkorchid2', 'chocolate1')
 
 
+k <- 20
 mu <- rep(0, k)
 sigma <- diag(1, k)
 
+Wasserstein_distance(mu, mu + .7, sigma, sigma)
 
-grid <- seq(0, .4, .1)
+grid <- c(0, .15, .2, .25, .7)
 
 
 
@@ -168,8 +169,13 @@ for(i in grid){
   distance_k <- rbind(distance_k, power_k)
 }
 
-plot(distance_k, xlim=c(0,8), main = "Relation between distance and power\n for different k's", xlab='k', ylab='power', las=1, type='l', lwd=3, col=colors[k])
+distance_k20 <- distance_k
 
-legend('bottomright', col=colors, legend=ks, lwd=3)
 
-Wasserstein_distance(mu, mu+.3, sigma, sigma)
+plot(distance_k5, xlim=c(0,6),  xlab='distance', ylab='power', las=1, type='l', lwd=3, col=colors[1])
+points(distance_k20, type='l', lwd=3, col=colors[2])
+points(distance_k50, type='l', lwd=3, col=colors[3])
+points(distance_k100, type='l', lwd=3, col=colors[4])
+
+legend('bottomright', legend=ks, col=colors, lwd=3)
+
