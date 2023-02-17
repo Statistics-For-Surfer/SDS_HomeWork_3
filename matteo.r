@@ -77,16 +77,21 @@ power_info <- function(M, P, n0, n1, mu, mu2, sigma, sigma2){
 
 
 
+# distance_k --------------------------------------------------------------
 
 
-k <- 100
+k <- 50
 mu <- rep(0, k)
 sigma <- diag(1, k)
 
-Wasserstein_distance(mu, mu + .3, sigma, sigma)
+Wasserstein_distance(mu, mu + .2, sigma, sigma)
 
-grid <- c(0, .07, .1, .14, .17, .2, .3)
+grid <- c(0, .07, .1, .13, .15, .17, .4)
 grid <- seq(0, .3, .05)
+
+
+
+
 
 
 
@@ -117,6 +122,7 @@ for(i in grid){
   power_k <- power_info(M, P, n0, n1, mu, mu+i, sigma, sigma)
   distance_k5 <- rbind(distance_k5, power_k)
 }
+
 
 # k = 20
 k <- 20
@@ -155,24 +161,33 @@ sigma <- diag(1, k)
 print(paste0("k = ", k , " -->"))
 
 grid <- c(0, .07, .1, .14, .17, .2, .3)
-distance_k <- matrix(NA, 0, 2)
+distance_k100 <- matrix(NA, 0, 2)
 
 for(i in grid){
   print(i)
-  power_k1 <- power_info(M, P, n0, n1, mu, mu+i, sigma, sigma)
+  power_k <- power_info(M, P, n0, n1, mu, mu+i, sigma, sigma)
   distance_k100 <- rbind(distance_k100, power_k)
 }
 
 
 
+dist_power_k <- list()
+dist_power_k$k5 <- distance_k5
+dist_power_k$k20 <- distance_k20
+dist_power_k$k50 <- distance_k50
+dist_power_k$k100 <- distance_k100
+
+save(dist_power_k, file = 'data/distance_power_k.RData')
+
 
 
 # Final plot
-plot(distance_k5, xlim=c(0,6),  xlab='distance', ylab='power', las=1, type='l', lwd=3, col=colors[1])
-points(distance_k20, type='l', lwd=3, col=colors[2])
-points(distance_k50, type='l', lwd=3, col=colors[3])
-points(distance_k100, type='l', lwd=3, col=colors[4])
+
+ty <- 'o'
+plot(distance_k5, xlim=c(0,6),  xlab='distance', ylab='power', las=1, type=ty, lwd=3, col=colors[1])
+points(distance_k20, type=ty, lwd=3, col=colors[2])
+points(distance_k50, type=ty, lwd=3, col=colors[3])
+points(distance_k100, type=ty, lwd=3, col=colors[4])
 
 legend('bottomright', legend=ks, col=colors, lwd=3, title='k')
 
-grid()
