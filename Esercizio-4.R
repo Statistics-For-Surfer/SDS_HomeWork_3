@@ -50,35 +50,37 @@ list_summary <- function(list, fun){
 
 td_ROI_mean <- list_summary(td_scale, mean)
 td_ROI_median <- list_summary(td_scale, median)
-td_ROI_sd <- list_summary(td_scale, sd)
+#td_ROI_sd <- list_summary(td_scale, sd)
 
-x_data <- cbind(td_ROI_mean,td_ROI_median,td_ROI_sd)
-x_data <- cbind(x_data,rep(0,93)) 
+x_data <- cbind(td_ROI_mean,td_ROI_median)
+x_data <- as.data.frame(cbind(x_data,0) )
+names(x_data)[ncol(x_data)] <- 'label'
 
 
 
 asd_ROI_mean <- list_summary(asd_scale, mean)
 asd_ROI_median <- list_summary(asd_scale, median)
-asd_ROI_sd <- list_summary(asd_scale, sd)
+#asd_ROI_sd <- list_summary(asd_scale, sd)
 
 
-z_data <- cbind(asd_ROI_mean,asd_ROI_median,asd_ROI_sd)
-z_data <- as.data.frame(cbind(z_data,0)) 
-
+z_data <- cbind(asd_ROI_mean,asd_ROI_median)
+z_data <- as.data.frame(cbind(z_data,1)) 
 names(z_data)[ncol(z_data)] <- 'label'
-
+z_data[is.na(z_data)] <- 0
 
 
 ### Split the dataset
-train_x_data <- z_data[1:60,]
+train_x_data <- x_data[1:60,]
+train_x_data[is.na(train_x_data)] <- 0
 train_x_data <- as.data.frame(train_x_data)
 dim(train_x_data)
-typeof(train_x_data)
-test_x_data <- z_data[61:93,]
+test_x_data <- x_data[61:93,]
 
 
 ### Normality distribution
-#[TODO] test the distributions normality
+library(energy)
+library(MASS)
+#[TODO]
 
 ### Best parameter
 mu_x_data <- apply(train_x_data[,1:k] , MARGIN = 2 , mean)
@@ -107,7 +109,7 @@ Friedman_procedure <- function(P,xdata,zdata){
   for(i in 1:P){
     z_p <- Take_sample_normal(n1, mu = mu_x_data, sigma = sigma_x_data , label =1) # Under H_0
     u_p <- rbind(xdata, z_p)
-    glm_model <-glm(label ~ ., data = u_p)
+    glm_model <-glm(label ~ ., data = u_p , maxit = 50)
     x_scores <- predict(glm_model , xdata[,1:k])
     z_scores <- predict(glm_model,  z_p[,1:k])
     kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
@@ -116,7 +118,14 @@ Friedman_procedure <- function(P,xdata,zdata){
   return(kolm_t)
   
 }
+
 ###
 d <- Friedman_procedure(P = 100 , xdata = train_x_data , zdata = z_data)
 
 ###
+u_obs <- rbind(x_data,z_data)
+model_obs <- glm(label~.,data = u_obs)
+x_scores_obs <- predict(model_obs , test_x_data[,1:k])
+z_scores_obs <- predict(model_obs, z_data[,1:k])
+boxplot(x_scores_obs)
+boxplot(z_scores_obs)

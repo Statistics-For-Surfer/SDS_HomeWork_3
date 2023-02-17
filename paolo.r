@@ -45,6 +45,28 @@ Friedman_procedure <- function(P,xdata,zdata){
   return(kolm_t)
   
 }
+
+x_data <- Take_sample_normal(n0,mu,sigma,0)
+
+Friedman_procedure_2 <- function(P,x_data){
+  x_fri <- x_data
+  kolm_t <- rep(NA, P)
+  labels <- c(rep(0,n1),rep(1,n1))
+  for(i in 1:P){
+    idx <- sample(x = 1:(n0+n1), n0+n1)
+    z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
+    x_fri$label <- labels[idx[1:n0]]
+    z_p$label <- length(labels[idx[(n0+1):(n0+n1)]])
+    u_p <- as.data.frame(rbind(x_fri,z_p))
+    glm_f <- glm(label~., data = u_p)
+    scores <- predict(glm_f ,u_p[,1:k])
+    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic
+
+  }
+  return(kolm_t)
+  
+  
+}
 ############
 
 P <- 100
@@ -57,7 +79,7 @@ alpha_info <- function(P){
     z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
     u_p<- rbind(x_p, z_p) # Combine the data
     
-    kk <- Friedman_procedure(P,xdata  = x_p , zdata = z) # As mavi said
+    kk <- Friedman_procedure_2(P = P, x_data  = x_p ) # As mavi said
     glm_model <-glm(label ~ ., data = u_p)
     
     x_scores <- predict(glm_model , x_p[,1:k])
@@ -77,7 +99,7 @@ data <- alpha_info(P)
 
 
 
-t <- proportions(table(data[,1]))
+t <- proportions(table(data))
 barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 
 n0s <- c(20,50,70,100)
