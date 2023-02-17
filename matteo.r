@@ -33,18 +33,24 @@ Take_sample_normal <- function(n, mu, sigma, label){
 }
 
 
-Friedman_procedure <- function(P, xdata){
+Friedman_procedure_2 <- function(P,x_data){
+  x_fri <- x_data
   kolm_t <- rep(NA, P)
+  labels <- c(rep(0,n1),rep(1,n1))
   for(i in 1:P){
-    z_p <- Take_sample_normal(n1, mu, sigma, label = 1) # Under H_0
-    u_p <- rbind(xdata, z_p)
-    glm_model <-glm(label ~ ., data = u_p)
-    x_scores <- predict(glm_model , xdata[,1:k])
-    z_scores <- predict(glm_model,  z_p[,1:k])
-    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    idx <- sample(x = 1:(n0+n1), n0+n1)
+    z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
+    x_fri$label <- labels[idx[1:n0]]
+    z_p$label <- length(labels[idx[(n0+1):(n0+n1)]])
+    u_p <- as.data.frame(rbind(x_fri,z_p))
+    glm_f <- glm(label~., data = u_p)
+    scores <- predict(glm_f ,u_p[,1:k])
+    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic
+    
   }
-  
   return(kolm_t)
+  
+  
 }
 
 
@@ -57,7 +63,7 @@ alpha_info <- function(M, P){
     z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1) 
     u_p<- rbind(x_p, z_p) 
     
-    kk <- Friedman_procedure(P, xdata  = x_p, zdata = z_p) 
+    kk <- Friedman_procedure_2(P, xdata  = x_p, zdata = z_p) 
     glm_model <-glm(label ~ ., data = u_p)
     
     x_scores <- predict(glm_model , x_p[,1:k])
@@ -129,7 +135,7 @@ power_info <- function(M, P, n0, n1, mu, mu2, sigma, sigma2){
     z_scores <- predict(p_model, z) 
     
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    kk <- Friedman_procedure(P, x)
+    kk <- Friedman_procedure_2(P, x)
     prop_ks[i] <- true_kolm > quantile(kk, 1-alpha)
   }
   data <- c(dist, mean(prop_ks))
