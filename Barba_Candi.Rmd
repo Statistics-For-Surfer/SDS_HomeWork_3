@@ -207,6 +207,7 @@ for(i in 1:length(n0s)){
 
 ```
 
+
 ```{r changing alpha, changing, warning=FALSE}
 ks <- c(5,20,70,100)
 n0 <- 70
@@ -261,7 +262,7 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 
 
 ```{r power info , warning = FALSE}
-power_info <- function(P, k, percentile_ks, increment){
+power_info <- function(P, k, increment){
   
   prop_ks <- rep(NA, P)
   for(i in 1:P){
@@ -272,32 +273,31 @@ power_info <- function(P, k, percentile_ks, increment){
     x_scores <- predict(p_model, x)
     z_scores <- predict(p_model, z) 
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    prop_ks[i] <- true_kolm > percentile_ks
+    kk <- Friedman_procedure(P,x_data = x, z_data = z)
+    prop_ks[i] <- true_kolm > quantile(kk,1-alpha)
   }
   data <-  mean(prop_ks)
   
   
   return(data)
 }
+
 ```
 
 
 ```{r power info changing distance , warning = FALSE}
-k <- 5
-mu <- 1:k
-sigma <- generate_sigma(length(mu))
-max_in <- 5
-ll <- seq(from = 0 , to = max_in , by = 0.5 )
+ll <- seq(from = 0 , to = max_in , by = 0.3 )
 powers <- c()
 distance <- c()
 for (i in (ll)){
-  print(i)
-  mu2 <- mu + i 
+  mu2 <- mu + i
+  print(mu2)
   sigma2 <- sigma
   distance <- c(distance,Wasserstein_distance(mu, mu2, sigma, sigma2))
-  powers <- c(powers,power_info(100, k = length(mu), percentile_ks = quantile(per_kolm, 1-alpha),
-                          increment = i))
-  }
+  powers <- c(powers,power_info(100, k = length(mu),increment = i))
+}
+plot(distance,powers,col = 'darkblue' , type = "o" , lwd = 2)
+
 ```
 
 ```{r power plots , warning = FALSE}
