@@ -23,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r Packages , warning = FALSE}
+```{r Packages , warning = FALSE ,echo = FALSE}
 rm(list = ls())
 #load packages
 packs <- c('MASS', 'pracma', 'psych','caTools','e1071',"dgof")
@@ -32,7 +32,7 @@ lapply(packs, require, character.only = TRUE)
 ## Purpose and Statistical tools used
 
 The goal of the project is to perform Friedman's procedure as a proxy of
-multiple studies and applyi it on fMRI (functional magnetic resonance
+multiple studies and apply it on fMRI (functional magnetic resonance
 imaging) data in order to test wheter the data from td (tipacally
 develpment) subjects and asd (authism spectrum disorder) subject came
 from the same distribution or not. In order to reach this goal we used
@@ -74,11 +74,13 @@ H_{0}: F_{s_{x}} = F_{s_{z}}\\ H_{1}: F_{s_{x}} \neq F_{s_{z}}
 
 
 When the same data is used for both training and subsequent scoring, these univariate null distributions are not valid.
-To solve this Friedman had proposed the following procedure to compute the distribution of the statistical test under H0:
+To solve this  we lead the following procedure to compute the distribution of the statistical test under H0:
 Suppose that the sample $z_{i}$ came from a reference distribution (say $p_{0}$).
 
 
-• Drawn a sample of size n1 from p0.
+• Drawn a sample $z_{i}$ of size n1 from p0.
+
+• Permute the data label
 
 • Use them with the actual data to train the classification model and compute the scores.
 
@@ -95,7 +97,7 @@ n0 <- 70  # Sample size 0
 n1 <- 70  # Sample size 1
 alpha <- .05 # significance level
 set.seed(324)# reproducibility
-P <- 1000
+P <- 100
 acc_rej_col <- c("#d3305d" , "#ABCDEF")
 ```
 
@@ -109,8 +111,6 @@ Take_sample_normal <- function(n, mu, sigma, label){
   return(x)
 }
 
-
-
 mu <- rep(0,k)
 sigma <- diag(1 ,k)
 
@@ -120,46 +120,24 @@ sigma <- diag(1 ,k)
 In order to get the distribution of the Kolmogorov-Smirnov statistic under the null hypopthesis, we implement the Friedman's procedure, supposing a reference distribution $p_{0}$ that have generated the $\underline{z}$ sample. Under the null hypothesis $p_{0}$ has the same distribution than the one that have generated the $\underline{x}$ sample. After have implemented the Friedmann's procedure we end with $t_{1} \dots t_{P}$ kolmogorov statistics that can be used as the distribution of statistic test under the null hypothesis. So we can build the reject region $R_{\alpha}$ as the values of the test statistic  greater than a threshold equal $1 - \alpha$ quantile of the distribution. We reject with significance level $\alpha$ if the observed statistics is greater than the threshold.
 
 ```{r permutation test, warning=FALSE}
-
-permutation_test <- function(P,u){
-  label0 <- rep(0,n0)
-  label1 <- rep(1,n1)
-  labels <- c(label0,label1)
-  per_kolm <- rep(NA, P)
-  for(i in 1:P){
-    idx <- sample(x = 1:(n0+n1), size = n0+n1)
-    u$label <- labels[idx]
-    glm_model <- glm(label ~ ., data = u ,maxit= 100)
-    scores <- predict(glm_model , u[,1:k])
-    per_kolm[i] <- ks.test(scores[u$label == 0],scores[u$label == 1])$statistic
-  }
-  return(per_kolm)
-}
-
-#per_kolm <- permutation_test(P)
-```
-
-```{r permutation histogram , echo=FALSE}
-permutation_quantile <- quantile(per_kolm , 1-alpha)
-hist(per_kolm , main = "ks distribution",col = 3)
-abline(v = permutation_quantile)
-box()
-```
-
-```{r Friedmann Procedure, warning= FALSE}
-
-
-Friedman_procedure <- function(P,x,z){
-  kolm_t <- rep(NA, P)
-  for(i in 1:P){
+Friedman_procedure <- function(P,x_data , z_data){
+  x_fri <- x_data       # Copy the data
+  kolm_t <- rep(NA, P)  # Pre-set the Kolmogorov-Smirnov statistic
+  labels <- c(rep(0,n1),rep(1,n1))   #  Set of the label
+  for(i in 1:P){       
     z_p <- Take_sample_normal(n1, mu, sigma, label =1) # Under H_0
-    u_p <- rbind(x, z_p)
-    glm_model <-glm(label ~ ., data = u_p)
-    x_scores <- predict(glm_model , x[,1:k])
-    z_scores <- predict(glm_model,  z_p[,1:k])
-    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    idx <- sample(x = 1:(n0+n1), n0+n1)    # Shuffle the label
+    
+    x_fri$label <- labels[idx[1:n0]]                   # Permuted label
+    z_p$label <- length(labels[idx[(n0+1):(n0+n1)]])   # Permuted label
+    u_p <- as.data.frame(rbind(x_fri,z_p))             # Row bind the two data frame
+    glm_f <- glm(label~., data = u_p)                  # Train the model
+    scores <- predict(glm_f ,u_p[,1:k])                # Compute the scores
+    
+    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic  # Save the i -th statistics value
+    #kolm_t[i] <- ks.test(scores[1:n0] , scores[(n0+1):(n0+n1)])$statistic  # Save the i -th statistics value
+
   }
-  
   return(kolm_t)
 
 }
@@ -167,21 +145,11 @@ Friedman_procedure <- function(P,x,z){
 ```
 
 
-
-```{r histo, warning=FALSE}
-#kolm_t <- Friedman_procedure(P = P)
-hist(meta_k, main = "
-       Kolmogorov-Smirnov statistic \n distribution under H_0",
-       col = "skyblue", border = "white", breaks= 30)
-p_kolm <- quantile(meta_k , 1 - alpha)
-abline(v = p_kolm , col = "red" , lty = 3 , lwd = 2)
-box()
-```
 After have built the reject region $R_{\alpha}$ we can perform the test as many time as we want to actually get information about the size and the power.
 
 ### Info about alpha
 ```{r alpha info, warning=FALSE}
-P <- 100
+P <- 400
 alpha_info <- function(P){
   prop_rej <- rep(NA, P)
   p_values <- rep(NA , P)
@@ -191,7 +159,7 @@ alpha_info <- function(P){
     z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
     u_p<- rbind(x_p, z_p) # Combine the data
     
-    kk <- Friedman_procedure(P,x = x_p,z_p = z) # As mavi said
+    kk <- Friedman_procedure(P, x_data = x_p , z_data = z) 
     glm_model <-glm(label ~ ., data = u_p)
     
     x_scores <- predict(glm_model , x_p[,1:k])
@@ -199,16 +167,17 @@ alpha_info <- function(P){
     
     true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
     prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)
+    p_values[i] <- sum(kk > true_kolm ) / length(kk)
 
   }
   
-  data = as.data.frame(prop_rej)
-  colnames(data) <- c("KS","p")
+  data = as.data.frame(cbind(prop_rej,p_values))
+  colnames(data) <- c("KS","p_values")
   
   return(data)
 }
 
-#data <- alpha_info(P = P)
+data <- alpha_info(P = P)
 
 ```
 
@@ -217,6 +186,11 @@ t <- proportions(table(data[,1]))
 barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
 ```
 
+```{r p-value}
+{hist(data[,2],freq = F , breaks = 10)
+abline(h = 1)
+}
+```
 
 ### Changing size \alpha
 
