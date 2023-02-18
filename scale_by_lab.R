@@ -44,7 +44,7 @@ list_summary <- function(list, fun){
 }
 
 
-# Get new data frames with summaries of all the patietns for ASD and TD.
+# Get new data frames with summaries of all the patients for ASD and TD.
 td_ROI_mean <- list_summary(td_data_lab_scale, mean)
 td_ROI_median <- list_summary(td_data_lab_scale, median)
 td_ROI_sd <- list_summary(td_data_lab_scale, sd)
