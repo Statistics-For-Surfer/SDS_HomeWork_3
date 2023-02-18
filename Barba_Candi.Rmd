@@ -1,10 +1,12 @@
----
+------------------------------------------------------------------------
 
 ---
-title: "Statistics for Data Science - Homework 2"
+title: "Statistics for Data Science - Homework 3"
 author: "Barba Paolo, Candi Matteo"
 output: html_document
 ---
+
+```{=html}
 <style type="text/css">
 body, td {
    font-size: 14px;
@@ -16,39 +18,32 @@ pre {
   font-size: 12px
 }
 </style>
----
+```
+
+------------------------------------------------------------------------
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-```{r Packages , warning = FALSE ,echo = FALSE}
+```{r Packages , warning = FALSE , message = FALSE , results='hide' , echo = FALSE}
 rm(list = ls())
 #load packages
-packs <- c('MASS', 'pracma', 'psych','caTools','e1071',"dgof",'r2symbols)')
+packs <- c('MASS', 'pracma', 'psych','caTools','e1071','dgof','latex2exp')
 lapply(packs, require, character.only = TRUE)
 ```
+
 ## Purpose and Statistical tools used
 
-The goal of the project is to perform Friedman's procedure as a proxy of
-multiple studies and apply it on fMRI (functional magnetic resonance
-imaging) data in order to test wheter the data from td (tipacally
-develpment) subjects and asd (authism spectrum disorder) subject came
-from the same distribution or not. In order to reach this goal we used
-statistical tools as machine learning algorithm and two-sample
-Hypothesis testing.
+The goal of the project is to perform Friedman's procedure as a proxy of multiple studies and apply it on fMRI (functional magnetic resonance imaging) data in order to test wheter the data from td (tipacally develpment) subjects and asd (authism spectrum disorder) subject came from the same distribution or not. In order to reach this goal we used statistical tools as machine learning algorithm and two-sample Hypothesis testing.
 
 ## Exercise 3
 
-Friedman's procedure is used for solving two-sample hypothesis testing
-when the each observation consists of many measured attributes
-$x_{i} = x_{i_1}, x_{i_2} . . . x_{i_{M}}$ and
-$z_{i} = z_{i_1}, z_{i_2} . . . z_{i_{M}}$ where M is the dimensionality
-of the dataset and we have $n_{0}$ samples for $\underline{x}$ and
-$n_{1}$ samples for $\underline{z}$. We create then a hypothesis system
-as the following:
+### Two sample hypotesis test:
 
+Friedman's procedure is used for solving two-sample hypothesis testing when the each observation consists of many measured attributes $x_{i} = x_{i_1}, x_{i_2} . . . x_{i_{M}}$ and $z_{i} = z_{i_1}, z_{i_2} . . . z_{i_{M}}$ where M is the dimensionality of the dataset and we have $n_{0}$ samples for $\underline{x}$ and $n_{1}$ samples for $\underline{z}$. We create then a hypothesis system as the following:
+
+```{=tex}
 \begin{equation}
 
 \begin{cases}
@@ -58,10 +53,10 @@ H_{0}: F_{x} = F_{z}\\ H_{1}: F_{x} \neq F_{z}
 \end{cases}
 
 \end{equation}
+```
+Since the distribution we want to compare are multivariate ones, there are not variety of procedures that can compare them directly. The idea then, is to perform classification machine learning algorithm as logistic regression, compute the scores of the observed data $\underline{s_{x}}$ and $\underline{s_{z}}$ and compare the univariate distribuion using two sample hypothesis test as Kolmogorov-Smirnov test. So the hypothesis system would be as the following:
 
-Since the distribution we want to compare are multivariate ones, there are not variety of procedures that can compare them directly. The idea then, is to perform classification machine learning algorithm as logistic regression. Then compute the scores of the observed data $\underline{s_{x}}$ and  $\underline{s_{z}}$ and compare the univariate distribuion of them using two sample hypothesis test as Kolmogorov-Smirnov. So the hypothesis system would be as the following:
-
-
+```{=tex}
 \begin{equation}
 
 \begin{cases}
@@ -71,87 +66,135 @@ H_{0}: F_{s_{x}} = F_{s_{z}}\\ H_{1}: F_{s_{x}} \neq F_{s_{z}}
 \end{cases}
 
 \end{equation}
+```
+The take out the distribution under the null hypothesis we lead the following procedure
 
 
-When the same data is used for both training and subsequent scoring, these univariate null distributions are not valid.
-To solve this  we lead the following procedure to compute the distribution of the statistical test under H0:
-Suppose that the sample $z_{i}$ came from a reference distribution (say $p_{0}$).
+<div>
+<ol>
+    <li> Randomly permute the group label </li>
+   
+    <li> Train classifier (Logistic regression in our case) </li>
+   
+    <li> Compute the scores of the observations </li>
+   
+    <li> Compute the test statistic (Kolmogorov-Smirnov in our case) </li>
+   
+    <li> Repeat P times </li>
+</ol>
+</dic>
 
 
-• Drawn a sample $z_{i}$ of size n1 from p0.
+After this procedure, we obtain a set of statistics test $\underline{t} = {t_{1} \dots t_{n}}$.
 
-• Permute the data label
+Under $H_{0}$, the entire data vector ${\underline{x} ,\underline{z}}$ is an IID sample from a single distribution F, and so the group labels are meaningless.
 
-• Use them with the actual data to train the classification model and compute the scores.
+Then the observed statistics $\hat{t}$ is equally likely to be anywhere in $\underline{t}$.
 
-• Compute the statistics test between the two scores sample.
+We can compute the p-value $p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(T_j \geqslant T) = \{\text{proportion of permuted statistics larger than the original}\}$ setting the decision rule in order to reject the null hypothesis if the value of $p$ is lower than $\alpha$.
 
-• Repeat P times.
+### Goodness of fit test:
 
+The two sample hypothesis test can be turn to a goodness of fit test. Here we have the assumptions that the sample $\underline{z}$ came from an reference distribution (Say $F$). We can set up the following hypothesis system:
 
+```{=tex}
+\begin{equation}
 
+\begin{cases}
+
+H_{0}: F_{x} = F\\ H_{1}: F_{x} \neq F
+
+\end{cases}
+
+\end{equation}
+```
+Here we got only one sample $\underline{x} = \{ x_{i1} \dots x_{iM} \}_{i =1}^{N}$ and we want to test if this sample came from the reference distribution $F$. The distributions are still multivariate and we can use a classifiers to reduce a multivariate goodness of fit test into a univariate one. The hypothesis system change as the following:
+
+```{=tex}
+\begin{equation}
+
+\begin{cases}
+
+H_{0}: F_{s_{x}} = F_{s}\\ H_{1}: F_{s_{x}} \neq F_{s}
+
+\end{cases}
+
+\end{equation}
+```
+To perform the above test we can use kolmogorov-Smirnov test and to get out the distribution of the kolmogorov statistics under the null hypothesis we can set up a Monte Carlo simulation as the following:
+<div>
+<ol> 
+    <li> Drawn a sample $z_{i}$ of size n1 from p0. </li>
+
+    <li> Use them with the actual data to train the classification model and compute the scores. </li>
+
+    <li>Compute the statistics test between the two scores sample.</li>
+
+    <li> Repeat P times. </li>
+</ol>
+</dic>
+
+After this procedure, we obtain a set of statistics test $\underline{t} = {t_{1} \dots t_{n}}$ that can be used as the distribution of statistic test under the null hypothesis. So we can build the reject region $R_{\alpha}$ as the values of the test statistic greater than a threshold equal $1 - \alpha$ quantile of the distribution. We reject with significance level $\alpha$ if the observed statistics is greater than the threshold.
+
+We can compute the p-value $p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(T_j \geqslant T) = \{\text{proportion of permuted statistics larger than the original}\}$ setting the decision rule in order to reject the null hypothesis if the value of $p$ is lower than $\alpha$.
 
 ```{r parameters}
-k <- 5 # Dimensions
+k <- 5    # Dimensions
 n0 <- 70  # Sample size 0
 n1 <- 70  # Sample size 1
-alpha <- .05 # significance level
-set.seed(324)# reproducibility
-P <- 10
-acc_rej_col <- c("#d3305d" , "#ABCDEF")
+alpha <- .05  # significance level
+set.seed(324) # reproducibility
+P <- 100      # Simulation size
+acc_rej_col <- c("#d3305d" , "#ABCDEF")   # Color palette
 ```
 
 ```{r sample normal}
 # Take random sample from a multi-normal distribution.
 Take_sample_normal <- function(n, mu, sigma, label){
-  x <- mvrnorm(n, mu, sigma)
-  x <- as.data.frame(cbind(x, label))
-  colnames(x[length(colnames(x))]) <- "label"
+  x <- mvrnorm(n, mu, sigma)    # Random generate from a multivariate normal 
+  x <- as.data.frame(cbind(x, label))   # add label
+  colnames(x[length(colnames(x))]) <- "label"   # col label
   
   return(x)
 }
 
-mu <- rep(0,k)
-sigma <- diag(1 ,k)
+mu <- rep(0,k)    # Mean <- c(0,0,0,0,0 ...)
+sigma <- diag(1 ,k)  # Identity matrix for sigma 
 
 ```
 
 
-In order to get the distribution of the Kolmogorov-Smirnov statistic under the null hypopthesis, we implement the Friedman's procedure, supposing a reference distribution $p_{0}$ that have generated the $\underline{z}$ sample. Under the null hypothesis $p_{0}$ has the same distribution than the one that have generated the $\underline{x}$ sample. After have implemented the Friedmann's procedure we end with $t_{1} \dots t_{P}$ kolmogorov statistics that can be used as the distribution of statistic test under the null hypothesis. So we can build the reject region $R_{\alpha}$ as the values of the test statistic  greater than a threshold equal $1 - \alpha$ quantile of the distribution. We reject with significance level $\alpha$ if the observed statistics is greater than the threshold.
-
 ```{r Friedman_procedure , warning=FALSE}
 Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
   x_fri <- x_data       # Copy the data
-  z_p <- z_data
+  z_p <- z_data         # copy the z data
   kolm_t <- rep(NA, P)  # Pre-set the Kolmogorov-Smirnov statistic
-  labels <- c(rep(0,n1),rep(1,n1))   #  Set of the label
-  for(i in 1:P){ 
-    if(permut == F){
-      z_p <- Take_sample_normal(n1, mu, sigma, label =1)
-      } # Under H_0
+  labels <- c(rep(0,n1),rep(1,n1))   # Set of the label
+  for(i in 1:P){                     # Loop 
+    if(permut == F){                 # Check goodnees of fit
+      z_p <- Take_sample_normal(n1, mu, sigma, label =1)  # Sample under the null F
+      } 
+    if(permut == T){                 # Two sample test
     idx <- sample(x = 1:(n0+n1), n0+n1)    # Shuffle the label
     
-    x_fri$label <- labels[idx[1:n0]]                   # Permuted label
-    z_p$label <- labels[idx[(n0+1):(n0+n1)]]   # Permuted label
-    u_p <- as.data.frame(rbind(x_fri,z_p))             # Row bind the two data frame
-    glm_f <- glm(label~., data = u_p)                  # Train the model
-    scores <- predict(glm_f ,u_p[,1:k])                # Compute the scores
+    x_fri$label <- labels[idx[1:n0]]            # Permuted label
+    z_p$label <- labels[idx[(n0+1):(n0+n1)]]}   # Permuted label
+    u_p <- as.data.frame(rbind(x_fri,z_p))      # Row bind the two data frame
+    glm_f <- glm(label~., data = u_p)           # Train the model
+    scores <- predict(glm_f ,u_p[,1:k])         # Compute the scores
     
-    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic  # Save the i -th statistics value
-    #kolm_t[i] <- ks.test(scores[1:n0] , scores[(n0+1):(n0+n1)])$statistic  # Save the i -th statistics value
-
+    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic  
   }
   return(kolm_t)
 
 }
 ```
 
-
-
 After have built the reject region $R_{\alpha}$ we can perform the test as many time as we want to actually get information about the size and the power.
 
 ### Info about alpha
-```{r alpha info, warning=FALSE}
+
+```{r alpha info, warning=FALSE , eval = FALSE}
 
 alpha_info <- function(P , permut = FALSE){
   prop_rej <- rep(NA, P)
@@ -182,17 +225,18 @@ alpha_info <- function(P , permut = FALSE){
   colnames(data) <- c("KS","p_values")
   return(data)
 }
-P = 10
 data <- alpha_info(P = P , permut = F)
-
 ```
 
-```{r alphasss}
+```{r alphasss , echo = FALSE, fig.height = 4, fig.width = 5, fig.align = "center"}
+load("data/alpha_info_1.RData")
 t <- proportions(table(data[,1]))
-barplot(t, col = acc_rej_col , main = "Proportion of times we accept-reject \n the null hypothesis  when is actually true \n using KS statistic", names.arg = c("Reject" , "Accept"), ylim = c(0,1))
+barplot(t, col = acc_rej_col , main = TeX(r"(Proportion of times we accept / reject $H_{0}$ when is True)" , bold = T) ,cex.main = .8, names.arg = c("Reject" , "Accept"), ylim = c(0,1) , las = 1)
+
 ```
 
-```{r p-value}
+
+```{r p-value , eval = FALSE}
 {hist(data[,2],freq = F , breaks = 10)
 abline(h = 1)
 }
@@ -200,7 +244,7 @@ abline(h = 1)
 
 ### Changing size \alpha
 
-```{r changing alpha, changing n0, warning=FALSE}
+```{r changing alpha, changing n0, warning=FALSE , eval = FALSE}
 
 n0s <- c(20,50,70,100)
 k <- 5
@@ -216,15 +260,14 @@ for(i in 1:length(n0s)){
 
 ```
 
-```{r plots change size}
+```{r plots change size , eval = FALSE}
 {plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = "size alpha" ,xlab = "sample size")
 points(n0s , alpha_per , type = "l" , col = "red" , lwd = 2)
 grid()}
 
 ```
 
-
-```{r changing alpha, changing, warning=FALSE}
+```{r changing alpha, changing, warning=FALSE , eval = FALSE}
 ks <- c(5,20,70,100)
 n0 <- 70
 alpha_permutation_2 <- rep(NA ,length(ks))
@@ -239,16 +282,11 @@ for(i in 1:length(ks)){
   
 ```
 
-
-```{r plots alpha, changing, warning=FALSE}
+```{r plots alpha, changing, warning=FALSE , eval = FALSE}
 plot(n0s,alpha_permutation_2, col = "gold",ylim = c(0,1),type = "l")
 points(n0s,alpha_Friedmann_2, col = "blue",type = "l")
 
 ```
-
-
-
-
 
 ```{r distance function, warning=FALSE}
 # Distance functions.
@@ -268,7 +306,6 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 }
 
 ```
-
 
 ```{r power info , warning = FALSE}
 power_info <- function(P, k, increment , permut = F){
@@ -299,15 +336,14 @@ power_info <- function(P, k, increment , permut = F){
 
 ```
 
-
-```{r power info changing distance , warning = FALSE}
-max_in <- .8
-k <- 5
-n0 <- 70
-n1 <- 70
+```{r power info changing distance , warning = FALSE , eval = FALSE}
+max_in <- .9
+k <- 2
+n0 <- 20
+n1 <- 20
 mu <- rep(0,k)
 sigma <- diag(1,k)
-ll <- seq(from = 0 , to = max_in , by = 0.05)
+ll <- seq(from = 0 , to = max_in , by = 0.1)
 powers <- c()
 powers_2 <- c()
 distance <- c()
@@ -316,14 +352,10 @@ for (i in (ll)){
   print(mu2)
   sigma2 <- sigma
   distance <- c(distance,Wasserstein_distance(mu, mu2, sigma, sigma2))
-  powers <- c(powers,power_info(100, k = length(mu),increment = i))
-  powers_2 <- c(powers_2 ,power_info(100, k = length(mu),increment = i , permut = T))
+  powers <- c(powers,power_info(150, k = length(mu),increment = i))
+  powers_2 <- c(powers_2 ,power_info(150, k = length(mu),increment = i , permut = T))
 }
 plot(distance,powers,col = 'darkblue' , type = "o" , lwd = 2)
 points(distance, powers_2 , col = "darkred" , type = "o" , lwd = 2)
 
-```
-
-```{r power plots , warning = FALSE}
-plot(distance ,powers, col = "blue",type = "l")
 ```
