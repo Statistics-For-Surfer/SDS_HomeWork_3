@@ -32,10 +32,8 @@ td_data_lab_scale <- super_data[86:178]
 
 
 
-
-# Get summaries from all patient's ROIs.
+# Function to get summaries from all patient's ROIs.
 list_summary <- function(list, fun){
-  
   len <- length(list)
   tab <- matrix(NA, nrow = len, ncol = 116)
   
@@ -45,6 +43,23 @@ list_summary <- function(list, fun){
   return(tab)
 }
 
+
+# Get new data frames with summaries of all the patietns for ASD and TD.
 td_ROI_mean <- list_summary(td_data_lab_scale, mean)
+td_ROI_median <- list_summary(td_data_lab_scale, median)
+td_ROI_sd <- list_summary(td_data_lab_scale, sd)
+x_data <- c()
+x_data <- cbind(td_ROI_mean, td_ROI_median, td_ROI_sd, rep(0, length(td_data)))
+names(x_data)[ncol(x_data)] <- 'label'
+
+
+asd_ROI_mean <- list_summary(asd_data_lab_scale, mean)
+asd_ROI_median <- list_summary(asd_data_lab_scale, median)
+asd_ROI_sd <- list_summary(asd_data_lab_scale, sd)
+z_data <- c()
+z_data <- cbind(asd_ROI_mean, asd_ROI_median, asd_ROI_sd, rep(1, length(asd_data)))
+names(z_data)[ncol(z_data)] <- 'label'
+
+
 
 
