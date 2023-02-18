@@ -190,42 +190,39 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
 }
 ```
 
-After have built the reject region $R_{\alpha}$ we can perform the test as many time as we want to actually get information about the size and the power.
 
-### Info about alpha
 
 ```{r alpha info, warning=FALSE , eval = FALSE}
 
 alpha_info <- function(P , permut = FALSE){
-  prop_rej <- rep(NA, P)
-  p_values <- rep(NA , P)
+  prop_rej <- rep(NA, P)    # Pre-set accept/reject values
+  p_values <- rep(NA , P)   # Preset pvalues
   
-  for(i in 1:P){
-    x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  
+  for(i in 1:P){            # Loop over P
+    x_p <- Take_sample_normal(n = n0, mu = mu, sigma = sigma, label = 0)  # Take sample of
     z_p <- Take_sample_normal(n = n1, mu = mu, sigma = sigma, label = 1)  # same distributions
     u_p<- rbind(x_p, z_p) # Combine the data
-    if(permut == FALSE){
+    if(permut == FALSE){   # Goodness of fit test
       kk <- Friedman_procedure(P, x_data = x_p , z_data = z_p)}
-    if(permut == TRUE){
+    if(permut == TRUE){    # Two sample test
       kk <- Friedman_procedure(P, x_data = x_p , z_data = z_p , permut = T)
     }
     
-    glm_model <-glm(label ~ ., data = u_p)
+    glm_model <-glm(label ~ ., data = u_p)   # Perform the glm observed model
     
-    x_scores <- predict(glm_model , x_p[,1:k])
-    z_scores <- predict(glm_model,  z_p[,1:k])
+    x_scores <- predict(glm_model , x_p[,1:k])   # Compute the obs score
+    z_scores <- predict(glm_model,  z_p[,1:k])   # ""
     
-    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-    prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)
-    p_values[i] <- sum(kk > true_kolm ) / length(kk)
+    true_kolm <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic  # observed statistic
+    prop_rej[i] <- true_kolm < quantile(kk , 1 -alpha)   # check if accept or no
+    p_values[i] <- sum(kk > true_kolm ) / length(kk)     # Store the p-values
 
   }
   
-  data = as.data.frame(cbind(prop_rej,p_values))
-  colnames(data) <- c("KS","p_values")
+  data = as.data.frame(cbind(prop_rej,p_values))        # combine the dataframe
+  colnames(data) <- c("KS","p_values")                  # Change the names
   return(data)
 }
-data <- alpha_info(P = P , permut = F)
 ```
 
 ```{r alphasss , echo = FALSE, fig.height = 4, fig.width = 5, fig.align = "center"}
@@ -236,43 +233,63 @@ barplot(t, col = acc_rej_col , main = TeX(r"(Proportion of times we accept / rej
 ```
 
 
-```{r p-value , eval = FALSE}
-{hist(data[,2],freq = F , breaks = 10)
-abline(h = 1)
-}
+```{r p-value ,echo = FALSE, fig.height = 4, fig.width = 5, fig.align = "center"}
+hist(data[,2],freq = F , breaks = 6 , border = "white",
+      col = "#B6FCD5", main = TeX(r"(pvalue distribution under $H_{0}$ )", bold = T) ,cex.main = .8, xlab = TeX(r"(\hat{p}value)"))
+points(seq(0,1,length.out = 300) , rep(1,300) , col = "#C6E2FF" , cex = .8)
+box()
+legend("topright" , legend = "Uniform distribution" , border = "white" , lty = 1, col = "#C6E2FF" , bty = "n", cex = .8, lwd = 2)
+?legend
+
 ```
 
-### Changing size \alpha
+### Comments
 
+In the simulation above we are in a scenario were $n_{0} = n{1} = 70$, the dimensionality $k = 5$ and the simulation size $P = 100$ and we are dealing with goodness of fit test.
+First plot show the empirical size $\alpha \approx 0.05$ and the second one show the distribution of the observed $\hat{p}$ values with the theretical $Unif(0,1)$ distribution. Increasing $P$ it would fit better.
+
+The real goal of this type of simulations is to see how an algorithm would perform w.r.t to metrics as size and power while changing input parameters as $n_{0}, n_{1}, k$.
+
+### Performance with rispect to $\alpha$
 ```{r changing alpha, changing n0, warning=FALSE , eval = FALSE}
 
-n0s <- c(20,50,70,100)
-k <- 5
-P <- 10
-alpha_Friedmann <- rep(NA ,length(n0s))
-alpha_per <- rep(NA , length(n0s))
+n0s <- c(20,50,70,100)   # Values of alpha tested
+k <- 5                   # Set the dimensionality as 5
+P <- 150
+alpha_Friedmann <- rep(NA ,length(n0s))    # Preset the empirical alpha
+alpha_per <- rep(NA , length(n0s))         # Preset the empirical alpha 
 for(i in 1:length(n0s)){
-  n0 <- n0s[i]
+  n0 <- n0s[i] 
   alpha_Friedmann[i] <- 1-mean(alpha_info(P)$KS)
   alpha_per[i] <- 1-mean(alpha_info(P,permut = T)$KS)
   }
 
-
 ```
 
-```{r plots change size , eval = FALSE}
-{plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = "size alpha" ,xlab = "sample size")
-points(n0s , alpha_per , type = "l" , col = "red" , lwd = 2)
+```{r plots change size ,fig.height = 4, fig.width = 5, fig.align = "center"   ,echo = FALSE}
+load("alpha_fr_change_n.RData")
+load("alpha_per_change_n.RData")
+n0s <- c(20,50,70,100)   # Values of alpha tested
+
+{plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(sample size $n_{0}$)") , col = "#2274A5" , main = TeX(r"($alpha$ vs $n_{0}$ with $k = 5$ and $n_{1} = 70$)", bold = T))
+points(n0s , alpha_per , type = "l" , col = "#E7EB90" , lwd = 2)
+
+legend("topright" , legend = c("Goodness of fit test", "Two sample test") ,
+       col = c("#2274A5","#E7EB90") , border = "white" ,
+       lty = 1 , bty = "n", 
+       cex =.8, lwd = 2)
 grid()}
 
 ```
 
 ```{r changing alpha, changing, warning=FALSE , eval = FALSE}
 ks <- c(5,20,70,100)
+P <- 20
 n0 <- 70
 alpha_permutation_2 <- rep(NA ,length(ks))
 alpha_Friedmann_2 <- rep(NA ,length(ks))
 for(i in 1:length(ks)){
+  print(i)
   k <- ks[i]
   mu <- rep(0,k)
   sigma <- diag(1,k)
@@ -282,24 +299,55 @@ for(i in 1:length(ks)){
   
 ```
 
-```{r plots alpha, changing, warning=FALSE , eval = FALSE}
-plot(n0s,alpha_permutation_2, col = "gold",ylim = c(0,1),type = "l")
-points(n0s,alpha_Friedmann_2, col = "blue",type = "l")
+
+```{r plots alpha changing k, warning=FALSE , fig.height = 4, fig.width = 5, fig.align = "center" ,echo = FALSE}
+
+load("data/alpha_per_change_k.RData")
+load("data/alpha_fr_change_k.RData")
+ks <- c(5,20,70,100)
+
+{plot(ks ,alpha_permutation_2 , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(Dimensionality $k$)") , col = "#2274A5" , main = TeX(r"($alpha$ vs $k$ with $n_{0} = 70$ and $n_{1} = 70$)", bold = T))
+points(ks , alpha_Friedmann_2 , type = "l" , col = "#E7EB90" , lwd = 2)
+
+legend("topright" , legend = c("Goodness of fit test", "Two sample test") ,
+       col = c("#2274A5","#E7EB90") , border = "white" ,
+       lty = 1 , bty = "n", 
+       cex =.8, lwd = 2)
+grid()}
 
 ```
+#### Comments
+[TODO] grafici con P = 100 
+
+### Performance with rispect to the power $1 - \beta$
+
+To get out information about the power of the test (probability to get a correct discovery) we set up a simulation generating sample from difference distribution to check how likely it is that our test rejects $H_{0}$ when it is false. We set up different scenarios where $F_{x} \neq F_{z}$ to generate the data under $H_{0}$ and count how many times we reject the null hypothesis. Of course, if the two distributions are close each other is more difficult to discover the difference and reject $H_{0}$ then.
+
+In the simulation study we choose Gaussian parametric family for both $F_{x}$ and $F_{z}$, where $F_{z}$ has diffenent position parametes $\underline{\mu}$. We chose closed-form of Wasserstein distance as a distance $D(F_{x},F_{z}) = D(\underline{\mu_{x}} ,\underline{\mu_{z}})$ .
+$$
+\boldsymbol{X} \sim \mathrm{N}_k(\boldsymbol{\mu}_1, \Sigma_1)
+\hspace{.3cm}
+\boldsymbol{Y} \sim \mathrm{N}_k(\boldsymbol{\mu}_2, \Sigma_2)
+$$
+
+
+$$
+\textsf{W}^2_2(\boldsymbol{X}, \boldsymbol{Y}) = \| \boldsymbol{\mu}_1 - \boldsymbol{\mu}_2\|_2^2 + \mathrm{B}^2(\Sigma_1, \Sigma_2)
+$$
+
 
 ```{r distance function, warning=FALSE}
 # Distance functions.
 beta_q <- function(sigma1, sigma2){
-  trace_1 <- tr(sigma)
-  trace_2 <- tr(sigma2)
+  trace_1 <- tr(sigma)    # Trace of sigma X
+  trace_2 <- tr(sigma2)   # Trace of sigma Y
   trace_3 <- tr(sqrtm(sqrtm(sigma1)$B %*% sigma2 %*% sqrtm(sigma1)$B)$B)
   
   return(trace_1 + trace_2 - 2*trace_3)
 }
 
 Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
-  norma <- norm(mu1-mu2, type = "2")**2
+  norma <- norm(mu1-mu2, type = "2")**2   
   beta_quadro <- beta_q(sigma1, sigma2)
   
   return(norma + beta_quadro)
@@ -310,15 +358,15 @@ Wasserstein_distance <- function(mu1, mu2, sigma1, sigma2){
 ```{r power info , warning = FALSE}
 power_info <- function(P, k, increment , permut = F){
   
-  prop_ks <- rep(NA, P)
+  prop_ks <- rep(NA, P)    # Pre-set proportions of accept/reject
   for(i in 1:P){
-    x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)
-    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1)
-    u <- rbind(x,z) 
-    p_model <- glm(label ~ ., data = u)
-    x_scores <- predict(p_model, x)
-    z_scores <- predict(p_model, z) 
-    kolm_obs <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
+    x <- Take_sample_normal(n = n0, mu= mu, sigma = sigma, label = 0)  # Take sample of x
+    z <- Take_sample_normal(n = n1, mu=  mu2, sigma = sigma2, label = 1) # Take sample of z (From a different distribution)
+    u <- rbind(x,z)    # Combine the dataset
+    p_model <- glm(label ~ ., data = u)   # Perform the obs model
+    x_scores <- predict(p_model, x)       # Predict the obs scores
+    z_scores <- predict(p_model, z)       # ""
+    kolm_obs <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic                    # Obs statistic
     if(permut == FALSE){
       kk <- Friedman_procedure(P,x_data = x, z_data = z)
     }
@@ -338,8 +386,9 @@ power_info <- function(P, k, increment , permut = F){
 
 ```{r power info changing distance , warning = FALSE , eval = FALSE}
 max_in <- .9
-k <- 2
-n0 <- 20
+P <- 100
+k <- 5
+n0 <- 30
 n1 <- 20
 mu <- rep(0,k)
 sigma <- diag(1,k)
@@ -352,10 +401,44 @@ for (i in (ll)){
   print(mu2)
   sigma2 <- sigma
   distance <- c(distance,Wasserstein_distance(mu, mu2, sigma, sigma2))
-  powers <- c(powers,power_info(150, k = length(mu),increment = i))
-  powers_2 <- c(powers_2 ,power_info(150, k = length(mu),increment = i , permut = T))
+  powers <- c(powers,power_info(P, k = length(mu),increment = i))
+  powers_2 <- c(powers_2 ,power_info(P, k = length(mu),increment = i , permut = T))
 }
-plot(distance,powers,col = 'darkblue' , type = "o" , lwd = 2)
-points(distance, powers_2 , col = "darkred" , type = "o" , lwd = 2)
+
 
 ```
+
+```{r plot power info twosamplegof , , fig.height = 4, fig.width = 5, fig.align = "center" ,echo = FALSE}
+
+load("data/power_GoF.RData")
+load("data/power_two_sample_test.RData")
+load("data/distance_Gof_two.RData")
+plot(distance,powers, main = TeX(r"(Power vs Distance $W_{2}^{2}(X,Z)$)" , bold = T), xlab = "Distance", ylab = "power",
+     col = 'darkblue' , type = "o" , 
+     lwd = 2)
+points(distance, powers_2 , col = "darkred" , type = "o" , lwd = 2)
+legend("bottomright" , legend = c("GoF", "Two-sample") , col = c("darkblue","darkred"),border = "white" ,
+       lty = 1 , bty = "n", 
+       cex =.8, lwd = 2)
+grid()
+```
+
+
+### Comments
+In the Goodness of fit hypothesis testing we use the additional information of the distribution of $F_{z} = F$, such of that, this procedure has the potential to increase the power of the test. However, in the real case we simply got two sample without having this info..[TODO] continua
+
+
+### Two sample hypothesis test power vs dimensionality
+[TODO]
+
+### Two sample hypothesis test power vs sample size
+[TODO]
+
+
+# Exercise 4
+
+
+
+
+
+
