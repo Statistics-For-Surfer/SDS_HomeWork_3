@@ -267,8 +267,8 @@ for(i in 1:length(n0s)){
 ```
 
 ```{r plots change size ,fig.height = 4, fig.width = 5, fig.align = "center"   ,echo = FALSE}
-load("alpha_fr_change_n.RData")
-load("alpha_per_change_n.RData")
+load("data/alpha_fr_change_n.RData")
+load("data/alpha_per_change_n.RData")
 n0s <- c(20,50,70,100)   # Values of alpha tested
 
 {plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(sample size $n_{0}$)") , col = "#2274A5" , main = TeX(r"($alpha$ vs $n_{0}$ with $k = 5$ and $n_{1} = 70$)", bold = T))
@@ -436,9 +436,148 @@ In the Goodness of fit hypothesis testing we use the additional information of t
 
 
 # Exercise 4
+```{r load dataframe asd td, echo = FALSE}
+load('hw3_data.RData')
+```
+
+## Dataset
+
+The dataset we used for the sake of this project is ABIDE (Autism Brain Imaging Data Exchange); a collection of brain imaging data and clinical information from individuals with autism spectrum disorder (ASD) and typically developing (TD) controls.
+
+The dataset consists a of structural and functional fMRI data from over 85 individuals with ASD and 93 TD controls.
+
+Since data were taken in different labs, it's worth removing the lab-specific effect.
+
+```{r scale dataset by lab}
+# Put all data together.
+super_data <- c()
+for(el in 1:length(asd_data))  super_data <- c(super_data, asd_data[el])
+for(el in 1:length(td_data))  super_data <- c(super_data, td_data[el])
+
+
+# Take unique names of labs.
+lab <- names(super_data)
+init_lab <- c()
+for(el in lab) init_lab <- c(init_lab, substr(el,1,2))
+u_init_lab <- unique(init_lab)
+
+
+# Scale every data frame by lab.
+for(l in u_init_lab){
+  pos <- which(grepl(l, init_lab))
+  d <- matrix(NA, 0, 116)
+  for(i in pos) d <- rbind(d, super_data[[i]])
+  d <- as.matrix(d)
+  m <- mean(d)
+  s <- sd(d)
+  for(i in pos) super_data[[i]] <- (super_data[[i]] - m) / s
+}
+
+# Get new scaled data frames.
+asd_data_lab_scale <- super_data[1:85]
+td_data_lab_scale <- super_data[86:178]
+
+
+
+# Function to get summaries from all patient's ROIs.
+list_summary <- function(list, fun){
+  len <- length(list)
+  tab <- matrix(NA, nrow = len, ncol = 116)
+  
+  for(i in 1:len){
+    tab[i,] <- unname(sapply(list[[i]], fun, na.rm = T))  }
+  
+  return(tab)
+}
+
+# Get new data frames with summaries of all the patients for ASD and TD.
+td_ROI_mean <- list_summary(td_data_lab_scale, mean)
+td_ROI_median <- list_summary(td_data_lab_scale, median)
+td_ROI_sd <- list_summary(td_data_lab_scale, sd)
+x_data <- c()
+
+x_data <- as.data.frame(cbind(td_ROI_mean, td_ROI_median, td_ROI_sd))
+
+x_data <- prcomp(x_data)$x[, 1:6]           
+x_data <- as.data.frame(cbind(x_data,rep(0, length(td_data))))
+names(x_data)[ncol(x_data)] <- 'label'
+
+
+asd_ROI_mean <- list_summary(asd_data_lab_scale, mean)
+asd_ROI_median <- list_summary(asd_data_lab_scale, median)
+asd_ROI_sd <- list_summary(asd_data_lab_scale, sd)
+z_data <- c()
+z_data <- as.data.frame(cbind(asd_ROI_mean, asd_ROI_median, asd_ROI_sd))
+z_data <- prcomp(z_data)$x[, 1:6]
+z_data <- as.data.frame(cbind(z_data, rep(1, length(asd_data))))
+names(z_data)[ncol(z_data)] <- 'label'
+```
+
+
+```{r time series, eval = FALSE , echo = FALSE}
+[TODO]
+library(manipulate)
+
+manipulate(plot(asd_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "skyblue", lwd = 2, 
+                xlab = 'observations', ylab = 'value'),
+           patient = slider(1,length(asd_data)), region = slider(1,116))
+
+
+manipulate(plot(td_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "darkred" , lwd = 2 ,  
+                xlab = 'observations', ylab = 'value'),
+           patient = slider(1,length(td_data)), region = slider(1,116))
+```
+
+
+```{r split train dataset , warning = FALSE}
+### Split the dataset
+train_x_data <- x_data[1:60,]
+train_x_data <- as.data.frame(train_x_data)
+test_x_data <- x_data[61:93,]
+test_x_data$label <- 1
+```
+
+```{r performing the Friedmann procedure same dataset, warning = FALSE}
+### Friedmann procedure
+P <- 100
+k <- dim(train_x_data)[2] 
+n0 <-  dim(train_x_data)[1]
+n1 <- dim(test_x_data)[1]
+u_same <- as.data.frame(rbind(train_x_data,test_x_data))
+
+kk <- Friedman_procedure(P,x_data = train_x_data, z_data = test_x_data ,permut = T)
+
+model_obs <- glm(label~., data = u_same)
+scores <- predict(model_obs ,u_same[,1:dim(u_same)[2]])
+k_obs <- ks.test(scores[1:n0],scores[n0:(n0+n1)])$statistic
+
+hist(scores[1:n0],freq = F)
+hist(scores[n0:(n0+n1)],add = T , col = "green",freq = F)
+
+
+k_obs < quantile(kk , 0.95)
+```
 
 
 
 
+```{r performing the Friedmann procedure different dataset, warning = FALSE}
+### Friedmann procedure
+P <- 100
+k <- dim(train_x_data)[2] - 1
+n0 <-  dim(train_x_data)[1]
+n1 <- dim(z_data)[1]
 
+u_diff <- as.data.frame(rbind(train_x_data,z_data))
+kk <- Friedman_procedure(P,x_data = train_x_data, z_data = z_data ,permut = T)
 
+model_obs <- glm(label~., data = u_diff , maxit = 100)
+scores <- predict(model_obs ,u_diff[,1:k])
+k_obs <- ks.test(scores[1:n0],scores[n0:(n0+n1)])$statistic
+
+k_obs < quantile(kk , 0.95)
+
+hist(scores[1:n0],freq = F)
+hist(scores[n0:(n0+n1)],add = T , col = "green",freq = F)
+
+```
