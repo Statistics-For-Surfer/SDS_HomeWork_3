@@ -165,11 +165,11 @@ sigma <- diag(1 ,k)  # Identity matrix for sigma
 
 
 ```{r Friedman_procedure , warning=FALSE}
-Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
+Friedman_procedure <- function(P,x_data , z_data , permut = FALSE, a = 1 , m = 10){
   x_fri <- x_data       # Copy the data
   z_p <- z_data         # copy the z data
   kolm_t <- rep(NA, P)  # Pre-set the Kolmogorov-Smirnov statistic
-  labels <- c(rep(0,n1),rep(1,n1))   # Set of the label
+  labels <- c(rep(0,n0),rep(1,n1))   # Set of the label
   for(i in 1:P){                     # Loop 
     if(permut == F){                 # Check goodnees of fit
       z_p <- Take_sample_normal(n1, mu, sigma, label =1)  # Sample under the null F
@@ -178,11 +178,18 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
     idx <- sample(x = 1:(n0+n1), n0+n1)    # Shuffle the label
     
     x_fri$label <- labels[idx[1:n0]]            # Permuted label
-    z_p$label <- labels[idx[(n0+1):(n0+n1)]]}   # Permuted label
-    u_p <- as.data.frame(rbind(x_fri,z_p))      # Row bind the two data frame
-    glm_f <- glm(label~., data = u_p)           # Train the model
-    scores <- predict(glm_f ,u_p[,1:k])         # Compute the scores
-    
+    z_p$label <- labels[idx[(n0+1):(n0+n1)]]
+    }   # Permuted label
+    u_p <- as.matrix(rbind(x_fri,z_p))      # Row bind the two data frame
+    glm_f <- glmnet(
+      x = u_p[,1:k], 
+      y = u_p[,k+1],
+      maxit = m,
+      family = binomial,
+      alpha = a)
+    # Train the model
+    scores <- predict(glm_f ,u_p[,1:k], s = 0.05)         # Compute the scores
+    u_p <- as.data.frame(u_p)
     kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic  
   }
   return(kolm_t)
@@ -497,8 +504,6 @@ td_ROI_sd <- list_summary(td_data_lab_scale, sd)
 x_data <- c()
 
 x_data <- as.data.frame(cbind(td_ROI_mean, td_ROI_median, td_ROI_sd))
-
-x_data <- prcomp(x_data)$x[, 1:6]           
 x_data <- as.data.frame(cbind(x_data,rep(0, length(td_data))))
 names(x_data)[ncol(x_data)] <- 'label'
 
@@ -508,53 +513,51 @@ asd_ROI_median <- list_summary(asd_data_lab_scale, median)
 asd_ROI_sd <- list_summary(asd_data_lab_scale, sd)
 z_data <- c()
 z_data <- as.data.frame(cbind(asd_ROI_mean, asd_ROI_median, asd_ROI_sd))
-z_data <- prcomp(z_data)$x[, 1:6]
 z_data <- as.data.frame(cbind(z_data, rep(1, length(asd_data))))
 names(z_data)[ncol(z_data)] <- 'label'
+
 ```
 
 
-```{r time series, eval = FALSE , echo = FALSE}
-[TODO]
-library(manipulate)
-
-manipulate(plot(asd_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "skyblue", lwd = 2, 
-                xlab = 'observations', ylab = 'value'),
-           patient = slider(1,length(asd_data)), region = slider(1,116))
-
-
-manipulate(plot(td_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "darkred" , lwd = 2 ,  
-                xlab = 'observations', ylab = 'value'),
-           patient = slider(1,length(td_data)), region = slider(1,116))
-```
 
 
 ```{r split train dataset , warning = FALSE}
+#library("glmnet")
 ### Split the dataset
-train_x_data <- x_data[1:60,]
+train_x_data <- x_data[1:45,]
 train_x_data <- as.data.frame(train_x_data)
-test_x_data <- x_data[61:93,]
+test_x_data <- x_data[46:93,]
 test_x_data$label <- 1
+
 ```
 
 ```{r performing the Friedmann procedure same dataset, warning = FALSE}
 ### Friedmann procedure
 P <- 100
-k <- dim(train_x_data)[2] 
+k <- dim(train_x_data)[2] - 1
 n0 <-  dim(train_x_data)[1]
 n1 <- dim(test_x_data)[1]
-u_same <- as.data.frame(rbind(train_x_data,test_x_data))
+u_same <- as.matrix(rbind(train_x_data,test_x_data))
 
-kk <- Friedman_procedure(P,x_data = train_x_data, z_data = test_x_data ,permut = T)
+kk <- Friedman_procedure(P,x_data = train_x_data, z_data = test_x_data,permut = T , a = 1 , m = 100000)
 
-model_obs <- glm(label~., data = u_same)
-scores <- predict(model_obs ,u_same[,1:dim(u_same)[2]])
-k_obs <- ks.test(scores[1:n0],scores[n0:(n0+n1)])$statistic
+model_obs <- glmnet(
+  x = u_same[,1:k], 
+  y = u_same[,(k+1)],
+  family = "binomial",
+  maxit = 100000
+)
 
-hist(scores[1:n0],freq = F)
+scores <- predict(model_obs ,u_same[,1:k] , s = 0.05)
+
+  
+k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
+k_obs < quantile(kk , 0.95)
+
+hist(scores[1:n0],freq = F , xlim = c(-2,2), ylim = c(0,4))
 hist(scores[n0:(n0+n1)],add = T , col = "green",freq = F)
-
-
+hist(kk)
+abline(v = quantile(kk , 0.95))
 k_obs < quantile(kk , 0.95)
 ```
 
@@ -567,17 +570,30 @@ P <- 100
 k <- dim(train_x_data)[2] - 1
 n0 <-  dim(train_x_data)[1]
 n1 <- dim(z_data)[1]
+u_diff <- as.matrix(rbind(train_x_data,z_data))
+kk <- Friedman_procedure(P,x_data = train_x_data, z_data = z_data ,permut = T , a = 1 , m = 100000)
 
-u_diff <- as.data.frame(rbind(train_x_data,z_data))
-kk <- Friedman_procedure(P,x_data = train_x_data, z_data = z_data ,permut = T)
+model_obs <- glmnet(
+  x = u_diff[,1:k], 
+  y = u_diff[,(k+1)],
+  family = "binomial",
+  maxit = 100000,
+  alpha = 1
+  )
 
-model_obs <- glm(label~., data = u_diff , maxit = 100)
-scores <- predict(model_obs ,u_diff[,1:k])
-k_obs <- ks.test(scores[1:n0],scores[n0:(n0+n1)])$statistic
-
+?predict
+scores <- predict(model_obs ,u_diff[,1:k] , s = 0.13)
+k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
 k_obs < quantile(kk , 0.95)
 
-hist(scores[1:n0],freq = F)
-hist(scores[n0:(n0+n1)],add = T , col = "green",freq = F)
+#u_diff <- as.data.frame(u_diff)
+model_obs <- glm(label~., data = u_diff) 
+scores <- predict(model_obs ,u_diff[,1:k])
+k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
+
+k_obs < quantile(kk , 0.95)
+sum(scores < 0)
+#hist(scores[1:n0],freq = F)
+#hist(scores[n0:(n0+n1)],add = T , col = "green",freq = F)
 
 ```
