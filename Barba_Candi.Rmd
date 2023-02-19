@@ -165,12 +165,13 @@ sigma <- diag(1 ,k)  # Identity matrix for sigma
 
 
 ```{r Friedman_procedure , warning=FALSE}
-Friedman_procedure <- function(P,x_data , z_data , permut = FALSE, a = 1 , m = 10){
+Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
   x_fri <- x_data       # Copy the data
   z_p <- z_data         # copy the z data
   kolm_t <- rep(NA, P)  # Pre-set the Kolmogorov-Smirnov statistic
   labels <- c(rep(0,n0),rep(1,n1))   # Set of the label
   for(i in 1:P){                     # Loop 
+    print(i)
     if(permut == F){                 # Check goodnees of fit
       z_p <- Take_sample_normal(n1, mu, sigma, label =1)  # Sample under the null F
       } 
@@ -180,13 +181,12 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE, a = 1 , m = 1
     x_fri$label <- labels[idx[1:n0]]            # Permuted label
     z_p$label <- labels[idx[(n0+1):(n0+n1)]]
     }   # Permuted label
-    u_p <- as.matrix(rbind(x_fri,z_p))      # Row bind the two data frame
-    glm_f <- glmnet(
-      x = u_p[,1:k], 
-      y = u_p[,k+1],
-      maxit = m,
-      family = binomial,
-      alpha = a)
+    u_p <- as.data.frame(rbind(x_fri,z_p))      # Row bind the two data frame
+    glm_f <-train(
+      x =  u_p[,1:(k-1)],
+      y = u_p[,k],
+      method = "glmnet"
+      )
     # Train the model
     scores <- predict(glm_f ,u_p[,1:k], s = 0.05)         # Compute the scores
     u_p <- as.data.frame(u_p)
@@ -195,6 +195,7 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE, a = 1 , m = 1
   return(kolm_t)
 
 }
+
 ```
 
 
@@ -437,9 +438,25 @@ In the Goodness of fit hypothesis testing we use the additional information of t
 
 ### Two sample hypothesis test power vs dimensionality
 [TODO]
+load('data/distance_power_n0.RData')
 
+plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance', ylab='power', las=1, main='Power over distance with different n0 \n n1=70 & k=20')
+for(i in 1:length(distance_power_n0)){
+  points(distance_power_n0[[i]], type='l', col=colors[i], lwd=3)
+}
+
+legend('bottomright', legend=c(20,50,70,100), lwd=3, col = colors, bty='n', title = 'n0')
 ### Two sample hypothesis test power vs sample size
 [TODO]
+
+load('data/distance_power_k.RData')
+
+plot(1,1, type='n', xlim=c(0,8), ylim=c(0,1), xlab='distance', ylab='power', las=1, main='Power over distance with different k \n n0=70 & n1=60')
+for(i in 1:length(distance_power_k)){
+  points(distance_power_k[[i]], type='l', col=colors[i], lwd=3)
+}
+
+legend('right', legend=c(5, 20, 50, 100), lwd=3, col = colors, bty='n', title = 'k')
 
 
 # Exercise 4
@@ -522,8 +539,9 @@ names(z_data)[ncol(z_data)] <- 'label'
 
 
 ```{r split train dataset , warning = FALSE}
-#library("glmnet")
+
 ### Split the dataset
+
 train_x_data <- x_data[1:45,]
 train_x_data <- as.data.frame(train_x_data)
 test_x_data <- x_data[46:93,]
@@ -533,22 +551,23 @@ test_x_data$label <- 1
 
 ```{r performing the Friedmann procedure same dataset, warning = FALSE}
 ### Friedmann procedure
+x_data <- td_data
+
 P <- 100
 k <- dim(train_x_data)[2] - 1
 n0 <-  dim(train_x_data)[1]
 n1 <- dim(test_x_data)[1]
 u_same <- as.matrix(rbind(train_x_data,test_x_data))
 
-kk <- Friedman_procedure(P,x_data = train_x_data, z_data = test_x_data,permut = T , a = 1 , m = 100000)
+kk <- Friedman_procedure(P,x_data = train_x_data, z_data = test_x_data,permut = T)
 
-model_obs <- glmnet(
-  x = u_same[,1:k], 
-  y = u_same[,(k+1)],
-  family = "binomial",
-  maxit = 100000
+model_obs <- train(
+  x = u_same[,1:k],
+  y = u_same[,k+1],
+  method = "glmnet"
 )
 
-scores <- predict(model_obs ,u_same[,1:k] , s = 0.05)
+scores <- predict(model_obs ,u_same[,1:k])
 
   
 k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
@@ -573,16 +592,12 @@ n1 <- dim(z_data)[1]
 u_diff <- as.matrix(rbind(train_x_data,z_data))
 kk <- Friedman_procedure(P,x_data = train_x_data, z_data = z_data ,permut = T , a = 1 , m = 100000)
 
-model_obs <- glmnet(
-  x = u_diff[,1:k], 
-  y = u_diff[,(k+1)],
-  family = "binomial",
-  maxit = 100000,
-  alpha = 1
-  )
-
-?predict
-scores <- predict(model_obs ,u_diff[,1:k] , s = 0.13)
+model_obs <- train(
+  x = u_diff[,1:k],
+  y = u_diff[,k+1],
+  method = "glmnet"
+)
+scores <- predict(model_obs ,u_diff[,1:k])
 k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
 k_obs < quantile(kk , 0.95)
 

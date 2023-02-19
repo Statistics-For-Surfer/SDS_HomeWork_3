@@ -1,44 +1,12 @@
 rm(list = ls())
-load("hw3_data.RData")
-
-# Scale dataset -----------------------------------------------------------
-scale_datasets_list <- function(ls){
-  scaled_list <- list()
-  names <- names(ls)
-  for(i in 1:length(ls)){
-    
-    #### Scaling by column.
-    patient <- data.frame(apply(ls[[i]], 2, scale))
-    colnames(patient) <- colnames(ls[[i]])
-    scaled_list[[names[i]]] <- patient
-  }
-  return(scaled_list)
-}
-
-# Scale the dataset
-td_scale <- scale_datasets_list(td_data)
-asd_scale <- scale_datasets_list(asd_data)
-
-## Len of the dataset
-sort( table( sapply(td_scale, function(x) nrow(x)) ), decreasing = T )
-sort( table( sapply(asd_scale, function(x) nrow(x)) ), decreasing = T )
-
-## Plot times series
-
-library(manipulate)
-manipulate(plot(asd_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "skyblue", lwd = 2, 
-                xlab = 'observations', ylab = 'value'),
-           patient = slider(1,length(asd_data)), region = slider(1,116))
 
 
-manipulate(plot(td_data[[patient]][[region]], type='l', main = paste0("Patient-", patient, '\nROI-', region), col = "darkred" , lwd = 2 ,  
-                xlab = 'observations', ylab = 'value'),
-           patient = slider(1,length(td_data)), region = slider(1,116))
 
 
-####  get the variables
+
+
+load('hw3_data.RData')
 list_summary <- function(list, fun){
-  
   len <- length(list)
   tab <- matrix(NA, nrow = len, ncol = 116)
   
@@ -48,84 +16,56 @@ list_summary <- function(list, fun){
   return(tab)
 }
 
-td_ROI_mean <- list_summary(td_scale, mean)
-td_ROI_median <- list_summary(td_scale, median)
-#td_ROI_sd <- list_summary(td_scale, sd)
+td_ROI_mean <- list_summary(td_data, mean)
+td_ROI_median <- list_summary(td_data, median)
+td_ROI_sd <- list_summary(td_data, sd)
+x_data <- c()
 
-x_data <- cbind(td_ROI_mean,td_ROI_median)
-x_data <- as.data.frame(cbind(x_data,0) )
+x_data <- as.data.frame(cbind(td_ROI_mean, td_ROI_median, td_ROI_sd))
+
+x_data <- as.data.frame(cbind(x_data,rep(0, length(td_data))))
+
+
+
+
 names(x_data)[ncol(x_data)] <- 'label'
-
-
-
-asd_ROI_mean <- list_summary(asd_scale, mean)
-asd_ROI_median <- list_summary(asd_scale, median)
-#asd_ROI_sd <- list_summary(asd_scale, sd)
-
-
-z_data <- cbind(asd_ROI_mean,asd_ROI_median)
-z_data <- as.data.frame(cbind(z_data,1)) 
+#####
+asd_ROI_mean <- list_summary(asd_data, mean)
+asd_ROI_median <- list_summary(asd_data, median)
+asd_ROI_sd <- list_summary(asd_data, sd)
+z_data <- c()
+z_data <- as.data.frame(cbind(asd_ROI_mean, asd_ROI_median, asd_ROI_sd))
+z_data <- as.data.frame(cbind(z_data, rep(1, length(asd_data))))
 names(z_data)[ncol(z_data)] <- 'label'
-z_data[is.na(z_data)] <- 0
 
 
-### Split the dataset
-train_x_data <- x_data[1:60,]
-train_x_data[is.na(train_x_data)] <- 0
-train_x_data <- as.data.frame(train_x_data)
-dim(train_x_data)
-test_x_data <- x_data[61:93,]
-
-
-### Normality distribution
-library(energy)
-library(MASS)
-#[TODO]
-
-### Best parameter
-mu_x_data <- apply(train_x_data[,1:k] , MARGIN = 2 , mean)
-mu_x_data[is.na(mu_x_data)] <- mean(mu_x_data , na.rm = T)
-sigma_x_data <- cov(train_x_data[,1:k])
-sigma_x_data[is.na(sigma_x_data)] <- 0
+#####
 
 
 
-### Friedmann procedure
-k <- dim(train_x_data)[2] - 1
-n0 <-  dim(train_x_data)[1]
-n1 <- dim(z_data)[1]
+u <- as.matrix(rbind(x_data,z_data))
+k <- dim(x_data)[2]
 
-###
-Take_sample_normal <- function(n, mu, sigma, label){
-  x <- mvrnorm(n, mu, sigma)
-  x <- as.data.frame(cbind(x, label))
-  colnames(x[length(colnames(x))]) <- "label"
-  
-  return(x)
-}
+mod_1 <- glmnet(
+  x = u[,1:(k-1)],
+  y = u[,k],
+  alpha = 0.2,
+  maxit = 10,
+  family = "gaussian",
+)
 
-Friedman_procedure <- function(P,xdata,zdata){
-  kolm_t <- rep(NA, P)
-  for(i in 1:P){
-    z_p <- Take_sample_normal(n1, mu = mu_x_data, sigma = sigma_x_data , label =1) # Under H_0
-    u_p <- rbind(xdata, z_p)
-    glm_model <-glm(label ~ ., data = u_p , maxit = 50)
-    x_scores <- predict(glm_model , xdata[,1:k])
-    z_scores <- predict(glm_model,  z_p[,1:k])
-    kolm_t[i] <- ks.test(x_scores, z_scores, alternative = "two.sided")$statistic
-  }
-  
-  return(kolm_t)
-  
-}
+scores <- predict(mod_1,u[,1:(k-1)])
 
-###
-d <- Friedman_procedure(P = 100 , xdata = train_x_data , zdata = z_data)
+hist(scores[1:93] ,  xlim = c(0,1))
+hist(scores[94:178],add = T)
+ks.test(scores[1:93] , scores[94:178])$statistic
 
-###
-u_obs <- rbind(x_data,z_data)
-model_obs <- glm(label~.,data = u_obs)
-x_scores_obs <- predict(model_obs , test_x_data[,1:k])
-z_scores_obs <- predict(model_obs, z_data[,1:k])
-boxplot(x_scores_obs)
-boxplot(z_scores_obs)
+#####
+x_data$label <- c(rep(0,50),rep(1,43))
+x_data <- as.data.frame(x_data)
+mod <- glm(label~., data = x_data)
+scores <- predict(mod,x_data[,1:(k-1)])
+
+scores_2 <- predict(mod,x_data[,1:(k-1)] , s = .005)
+hist(scores_2[1:50],xlim = c(0,1))
+hist(scores_2[51:93],xlim = c(0,1), add  = T)
