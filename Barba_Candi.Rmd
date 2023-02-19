@@ -34,7 +34,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r Packages , warning = FALSE , message = FALSE , results='hide' , echo = FALSE}
 rm(list = ls())
 #load packages
-packs <- c('MASS', 'pracma', 'psych','caTools','e1071','dgof','latex2exp', 'caret', 'glmnet')
+packs <- c('MASS', 'pracma', 'psych','caTools','e1071','dgof','latex2exp', 'caret', 'glmnet','ggplot')
 lapply(packs, require, character.only = TRUE)
 ```
 
@@ -400,16 +400,11 @@ distance $D(F_{x},F_{z}) = D(\underline{\mu_{x}} ,\underline{\mu_{z}})$
 \boldsymbol{X} \sim \mathrm{N}_k(\boldsymbol{\mu}_1, \Sigma_1)
 \hspace{.3cm}
 \boldsymbol{Y} \sim \mathrm{N}_k(\boldsymbol{\mu}_2, \Sigma_2)
-$$
+ $$
 
-$$
+ $$
 \textsf{W}^2_2(\boldsymbol{X}, \boldsymbol{Y}) = \| \boldsymbol{\mu}_1 - \boldsymbol{\mu}_2\|_2^2 + \mathrm{B}^2(\Sigma_1, \Sigma_2)
-$$
-
-```{r distance function, warning=FALSE}
-
-
-```
+ $$
 
 ```{r distance and power info , warning = FALSE}
 
@@ -455,7 +450,13 @@ power_info <- function(P, k, increment , permut = F){
   return(data)
 }
 
+
 ```
+
+
+
+
+
 
 ```{r power info changing distance , warning = FALSE , eval = FALSE, echo=FALSE}
 max_in <- .9
@@ -481,6 +482,7 @@ for (i in (ll)){
 
 ```
 
+
 ```{r plot power info twosamplegof , , fig.height = 4, fig.width = 5, fig.align = "center" ,echo = FALSE}
 
 load("data/power_GoF.RData")
@@ -498,6 +500,9 @@ legend("bottomright" , legend = c("GoF", "Two-sample") , col = c("darkblue","dar
 grid()
 
 ```
+
+
+
 
 ### Comments
 
@@ -548,6 +553,7 @@ legend('right', legend=c(5, 20, 50, 100), lwd=3, col = colors, bty='n',title = '
 load('hw3_data.RData')
 ```
 
+
 ## Dataset
 
 The dataset we used for the sake of this project is ABIDE (Autism Brain
@@ -566,6 +572,7 @@ lab-specific effect normalizing over all the differents labs.
 
 ```{r scale dataset by lab, eval=FALSE}
 # Put all data together.
+# [TODO] comment the code
 all_data <- c()
 for(el in 1:length(asd_data))  all_data <- c(all_data, asd_data[el])
 for(el in 1:length(td_data))  all_data <- c(all_data, td_data[el])
@@ -625,7 +632,10 @@ for(p in 1:length(asd_corr)){
     asd_corr[[p]][,i] <- auto_corr
   }
 }
+ 
 ```
+
+
 
 We take means, medians and standard deviations as summaries of our data.
 
@@ -652,78 +662,157 @@ names(z_data)[ncol(z_data)] <- 'label'
 ```
 
 [TODO] Procedure actuated to hypotesis test on real data
+```{r Friedman regularized, eval = FALSE}
+Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
+  x_fri <- x_data       # Copy the data
+  z_p <- z_data         # copy the z data
+  kolm_t <- rep(NA, P)  # Pre-set the Kolmogorov-Smirnov statistic
+  labels <- c(rep(0,n0),rep(1,n1))   # Set of the label
+  for(i in 1:P){                     # Loop 
+    if(permut == F){                 # Check goodnees of fit
+      z_p <- Take_sample_normal(n1, mu, sigma, label =1)  # Sample under the null F
+    } 
+    if(permut == T){                 # Two sample test
+      idx <- sample(x = 1:(n0+n1), n0+n1)    # Shuffle the label
+      
+      x_fri$label <- labels[idx[1:n0]]            # Permuted label
+      z_p$label <- labels[idx[(n0+1):(n0+n1)]]
+    }   # Permuted label
+    u_p <- as.matrix(rbind(x_fri,z_p))      # Row bind the two data frame
+    glm_f <-glmnet(
+      x = u_p[,1:(k-1)],
+      y = u_p[,k],
+      family = "gaussian",
+      alpha = 0.2,
+      maxit = 100
+    )
+    
+    # Train the model
+    scores <- predict(glm_f ,u_p[,1:(k-1)], s = 0.05)         # Compute the scores
+    u_p <- as.data.frame(u_p)
+    kolm_t[i] <- ks.test(scores[u_p$label == 0] , scores[u_p$label == 1])$statistic  
+  }
+  return(kolm_t)
+  
+}
+`````
 
 
 ```{r performing the Friedmann procedure same dataset, warning = FALSE, eval=FALSE}
-### Split the dataset
-train_x_data <- x_data[1:45,]
-train_x_data <- as.data.frame(train_x_data)
-test_x_data <- x_data[46:93,]
-test_x_data$label <- 1
+u <- as.matrix(rbind(x_data[1:50,],z_data))
+k <- dim(u)[2]
+n0 <- 50
+n1 <- 85
 
 
-### Friedmann procedure
-x_data <- td_data
+my_model <- glmnet(
+  x = u[,1:(k-1)],
+  y = u[,k],
+  family = "gaussian",
+  alpha = 0.2,
+  maxit = 100
+)
 
-P <- 100
-k <- dim(train_x_data)[2] - 1
-n0 <-  dim(train_x_data)[1]
-n1 <- dim(test_x_data)[1]
-u_same <- as.matrix(rbind(train_x_data,test_x_data))
+sc <- predict(my_model, u[,1:(k-1)] , s = 0.05)
+hist(sc[1:50], xlim = c(0,1), freq = F)
+hist(sc[51:135], add = T, col = "red", freq = F)
 
-kk <- Friedman_procedure(P, x_data = train_x_data, z_data = test_x_data, permut = T)
+aa <- Friedman_procedure(100,x_data = x_data[1:50,], z_data = z_data, permut = T )
+k_obs_1 <- ks.test(sc[1:50] , sc[51:135])$statistic
 
-model_obs <- train(
-  x = u_same[,1:k],
-  y = u_same[,k+1],
-  method = "glmnet"
-  )
-
-scores <- predict(model_obs, u_same[ , 1:k])
-
-  
-k_obs <- ks.test(scores[1:n0], scores[(n0+1):(n0+n1)])$statistic
-k_obs < quantile(kk, 0.95)
-
-hist(scores[1:n0], freq = F, xlim = c(-2,2), ylim = c(0,4))
-hist(scores[n0:(n0+n1)], add = T, col = "green", freq = F)
-hist(kk)
-abline(v = quantile(kk, 0.95))
-k_obs < quantile(kk, 0.95)
+k_obs_1 < quantile(aa, 0.95)
 
 ```
+
+
+
 
 ```{r plot score_same, echo=FALSE}
+load("data/score_same.RData")
+load("data/k_obs_same.RData")
+load("data/test_4_same.RData")
 
-load('data/score_same.RData')
+# Build dataset with different distributions
+data <- data.frame(
+  type = c( rep("variable 1", 50), rep("variable 2", 43) ),
+  value = c( score_same[1:50], score_same[51:93]) )
+
+
+# Represent it
+
+ggplot( data = data, aes(x=value, fill=type)) +
+  geom_density( color="#e9ecef", alpha=0.6) +
+  scale_fill_manual(values=c("#69b3a2", "#404080")) +
+  labs(fill="") + theme_bw() 
+
+hist(bb, main = "Distribution of KS statistic under \n the null hypothesis",
+     col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic")
+abline(v = quantile(bb, 0.95), col = "red", lwd = 2 , lty = 2)
+abline(v = k2 , col = "darkblue", lwd = 2, lty = 2)
+legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
+       bty = "n", col = c("red","darkblue"),
+       cex =.8, lwd = 2)
+
+```
+### Comments
+```{r performing the Friedmann procedure different dataset, warning = FALSE, eval=FALSE}
+ dim(x_data)
+u_2 <- as.matrix(x_data)
+label <- c(rep(0, 50), rep(1, 43))
+
+n0 <- 50
+n1 <- 43
+
+model_2 <- glmnet(
+  x = u_2[, 1:(k - 1)],
+  y = label,
+  family = "gaussian",
+  alpha = 0.1,
+  maxit = 100
+)
+sc_2 <- predict(model_2, u_2[, 1:(k - 1)] , s = 0.7)
+hist(sc_2[1:50], xlim = c(0, 1))
+hist(sc_2[51:93], add = T, col = "red")
+k2 <- ks.test(sc_2[1:50] , sc_2[51:93])$statistic
+
+bb <-
+  Friedman_procedure(
+    P = 100,
+    x_data = x_data[1:50, ],
+    z_data = x_data[51:93, ],
+    permut = T
+  )
+k2 < quantile(bb, 0.95)
 
 ```
 
-```{r performing the Friedmann procedure different dataset, warning = FALSE, eval=FALSE}
-### Friedmann procedure
-P <- 100
-k <- dim(train_x_data)[2] - 1
-n0 <-  dim(train_x_data)[1]
-n1 <- dim(z_data)[1]
-u_diff <- as.matrix(rbind(train_x_data,z_data))
-kk <- Friedman_procedure(P,x_data = train_x_data, z_data = z_data ,permut = T , a = 1 , m = 100000)
 
-model_obs <- train(
-  x = u_diff[,1:k],
-  y = u_diff[,k+1],
-  method = "glmnet"
-)
-scores <- predict(model_obs ,u_diff[,1:k])
-k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
-k_obs < quantile(kk , 0.95)
+```{r plot scores different}
+load("data/score_different.RData")
+load("data/test_4_different.RData")
+load("data/k_obs_different.RData")
 
-model_obs <- glm(label~., data = u_diff) 
-scores <- predict(model_obs ,u_diff[,1:k])
-k_obs <- ks.test(scores[1:n0],scores[(n0+1):(n0+n1)])$statistic
+# Build dataset with different distributions
+data <- data.frame(
+  type = c( rep("variable 1", 50), rep("variable 2", 85) ),
+  value = c( score_different[1:50], score_different[51:135])
+  )
 
-k_obs < quantile(kk , 0.95)
-sum(scores < 0)
-#hist(scores[1:n0],freq = F)
-#hist(scores[n0:(n0+n1)],add = T , col = "green",freq = F)
+
+# Represent it
+
+ggplot( data = data, aes(x=value, fill=type)) +
+  geom_density( color="#e9ecef", alpha=0.6) +
+  scale_fill_manual(values=c("#69b3a2", "#404080")) +
+  labs(fill="") + theme_bw()
+
+
+hist(aa, main = "Distribution of KS statistic under \n the null hypothesis",
+     col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic", xlim = c(0,1))
+abline(v = quantile(aa, .95), col = "red", lwd = 2 , lty = 2)
+abline(v = k_obs_1 , col = "darkblue", lwd = 2, lty = 2)
+legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
+       bty = "n", col = c("red","darkblue"),
+       cex =.8, lwd = 2)
 
 ```
