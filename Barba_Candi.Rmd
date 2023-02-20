@@ -48,7 +48,7 @@ packs <- c('MASS', 'pracma', 'psych','caTools','e1071','dgof','latex2exp', 'care
 lapply(packs, require, character.only = TRUE)
 ```
 
-## Purpose and Statistical tools used
+#### Purpose and Statistical tools used
 
 The goal of the project is to perform Friedman's procedure as a proxy of
 multiple studies and apply it to fMRI (functional magnetic resonance
@@ -60,7 +60,7 @@ Hypothesis testing.
 
 ## Exercise 3
 
-### Two sample hypotesis test:
+#### Two sample hypotesis test:
 
 Friedman's procedure is used for solving two-sample hypothesis testing
 when each observation consists of many measured attributes
@@ -137,7 +137,7 @@ $p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(T_j \geqslant T) = \{\text{proportion o
 setting the decision rule in order to reject the null hypothesis if the
 value of $p$ is lower than $\alpha$.
 
-### Goodness of fit test:
+#### Goodness of fit test:
 
 The two-sample hypothesis test can be turned into a goodness of fit test assuming that the sample $\underline{z}$ came from
 a reference distribution (Say $F$). We can set up the following hypothesis system:
@@ -318,7 +318,7 @@ legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = 
 
 
 
-### Comments
+##### Comments
 
 In the simulation above we are in a scenario where $n_{0} = n{1} = 70$,
 the dimensionality $k = 5$, and the simulation size $P = 100$ and we are
@@ -331,7 +331,7 @@ The real goal of this type of simulation is to see how an algorithm
 would perform w.r.t to metrics as size and power while changing input
 parameters as $n_{0}, n_{1}, k$.
 
-### Performance with rispect to $\alpha$
+#### Performance with rispect to $\alpha$
 
 ```{r changing alpha, changing n0, warning=FALSE , eval = FALSE}
 # Changing n0.
@@ -398,7 +398,7 @@ grid()}
 ```
 
 
-### Performance with rispect to the power $1 - \beta$
+#### Performance with rispect to the power $1 - \beta$
 
 To get out information about the power of the test (probability to get a
 correct discovery) we set up a simulation generating sample from
@@ -471,9 +471,6 @@ power_info <- function(P, k, increment , permut = F){
 
 
 
-
-
-
 ```{r power info changing distance , warning = FALSE , eval = FALSE, echo=FALSE}
 max_in <- .9
 P <- 100
@@ -521,7 +518,7 @@ grid()
 
 
 
-### Comments
+##### Comments
 
 In the Goodness of fit hypothesis testing we use the additional
 information of the distribution of $F_{z} = F$, such of that, this
@@ -530,7 +527,7 @@ in the real application when our knowledge is as limited knowing only the sample
 In our case, we will remein in the context of two sample hypothesis test.
 
 
-### Two sample hypothesis test power vs sample size and power vs dimensionality
+#### Test power vs sample size and test power vs dimensionality
 
 We focus our studies on the context of two sample hypothesis tests.
 We set in different scenarios, where based on our knowledge simulation, the sample $\underline{x}$ came from a $F_{1} \sim N(\underline{\mu_{1}},\Sigma)$ and the sample $\underline{z}$ came from a $F_{2} \sim N(\underline{\mu_{2}},\Sigma)$ with different $\underline{\mu_{2}}$. Greater the distance from  $\underline{\mu_{1}}$ and $\underline{\mu_{2}}$, the more separated will be the two distributions we are comparing, and so in all likelihood, the test can detect the differences better.
@@ -545,8 +542,7 @@ The plot on the right show how the power change according to the distance, let v
 par(mfrow=c(1,2), col='white', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 load('data/distance_power_n0.RData')
 
-colors <- c('cornflowerblue', 'chartreuse3', 'darkorchid2', 'chocolate1')
-colors <- c('darkblue', 'darkred', 'darkorchid2', 'darkorange')
+colors <- c('white', 'gold2', 'green', 'orchid')
 
 
 plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance',ylab='power', las=1, main = TeX('Power vs distance with $n_1=70$ & $k=20$', bold=T), cex.main=main_dimesion) 
@@ -566,27 +562,27 @@ plot(1,1, type='n', xlim=c(0,4), ylim=c(0,1), xlab='distance',ylab='power', las=
 grid(nx=NA, col="#f2f2f2", ny=NULL)
 
 for(i in 1:3){
-  points(distance_power_k[[i]], type='l', col=colors[i], lwd=2)
+  points(distance_power_k[[i]], type='l', col=colors[4-i], lwd=2)
   }
 
 legend('bottomright', legend=c(5, 20, 50), lwd=3, col = colors, bty='n',title = 'k')
 
 ```
 
-## Comments
+##### Comments
 
 In both plots, the greater the distance, the greater the power will be.
 Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distributions and the performance of the test both on the side and the power would be better.
 Increasing the dimensionality will increase the distance from the distributions first, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be.
 
-# Exercise 4
+## Exercise 4
 
 ```{r load dataframe asd td, echo = FALSE}
 load('hw3_data.RData')
 ```
 
 
-## Dataset
+### Dataset
 
 The dataset we used for the sake of this project is ABIDE (Autism Brain
 Imaging Data Exchange); a collection of brain imaging data and clinical
@@ -696,7 +692,7 @@ Since the data we collect are a finite sample ($n_{0} + n_{1} = 93 + 85 = 178$) 
 
 To perform the test in both cases, when the null hypothesis $H_{0}$ (the distributions of the scores for the groups are the same) is true and when is false, we split the td dataset in two in order to check the result of the test.
 
-### Perform the test with td (label as 0) and td (label as 1) subjects
+#### Perform the test with TD (label as 0) and ASD (label as 1) subjects
 
 ```{r Friedman regularized, eval = FALSE}
 Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
@@ -761,7 +757,7 @@ k_obs_1 < quantile(aa, 0.95)
 
 
 
-```{r plot score_same, echo=FALSE , warning= FALSE}
+```{r plot score_same, echo=FALSE , warning= FALSE, fig.width=9,fig.height=5}
 load("data/score_same.RData")
 load("data/k_obs_same.RData")
 load("data/test_4_same.RData")
@@ -779,8 +775,20 @@ ggplot( data = data, aes(x=value, fill=type)) +
   scale_fill_manual(values=c("#69b3a2", "#404080")) +
   labs(fill="") + xlim(0, 1) + theme(panel.background = element_rect(fill="#2B3E50"), plot.background = element_rect(fill = "#2B3E50"))
 
+
+first <- density(score_same[1:50])
+second <- density(score_same[51:93])
+
+plot(first, xlim=c(0,.8), xlab='scores', lwd=.1, las=1)
+lines(second, lwd=.1)
+
+polygon(first, col=rgb(1,0,0,.2))
+polygon(second, col=rgb(0,0,1,.2))
+grid(lty=2, lwd=.6)
+
+
 hist(bb, main = "Distribution of KS statistic under \n the null hypothesis",
-     col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic", xlim = c(0,1))
+     col = "cyan4" , border = "#2B3E50" , freq = F , xlab = "ks statistic", xlim = c(0,1), las=1)
 abline(v = quantile(bb, 0.95), col = "red", lwd = 2 , lty = 2)
 abline(v = k2 , col = "darkblue", lwd = 2, lty = 2)
 legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
@@ -789,14 +797,14 @@ legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
 
 ```
 
-### Comments
+##### Comments
 
 The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
 Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data don't show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores is the same
 
 
-### Perform the test with td (label as 0) and asd (label as 1) subjects
+#### Perform the test with td (label as 0) and asd (label as 1) subjects
 
 ```{r performing the Friedmann procedure different dataset, warning = FALSE, eval=FALSE}
  dim(x_data)
@@ -859,13 +867,13 @@ legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
 
 ```
 
-### Comments
+##### Comments
 
 The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
 Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores of asd and td subjects are different.
 
-### Conclusion and final remark
+#### Conclusion and final remark
 
 In the case of interest we are dealing with a noisy and small set of data, and the higher the dimension the "thinner" the information effectively available to 
 resolve the difference. Such procedure depends strictly to the sample size, expecially with high dimension and so it is worth to collect more data to let the procedure more consistent.
