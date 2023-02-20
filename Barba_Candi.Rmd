@@ -5,9 +5,19 @@ author: "Barba Paolo, Candi Matteo"
 output: 
   html_document:
      code_folding: hide
+     theme: 
+      color-contrast-warnings: false
+      bg: "#2B3E50"
+      fg: "#B8BCC2"
+      primary: "#EA80FC"
+      secondary: "#B8BCC2"
+      base_font:
+      google: Prompt
+      heading_font:
+        google: Proza Libre
+        
   editor_options: 
      markdown: 
-     
         wrap: 75
 ---
 
@@ -286,23 +296,23 @@ sigma <- diag(1 ,k)  # Identity matrix for sigma
 ```
 
 
-```{r alphasss , fig.height = 4, fig.width = 9, fig.align = "center", echo = FALSE}
+```{r alphas , fig.height = 4, fig.width = 9, fig.align = "center", echo = FALSE}
 
 palette <- c("#FF6F59", "#FFFD98", "#BDE4A7", "#9FBBCC", "#00487C" )
 
 
 
-par(mfrow=c(1,2))
+par(mfrow=c(1,2), col='white', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 load("data/alpha_info_1.RData")
 t <- proportions(table(data[,1]))
-barplot(t, col =palette[c(1,3)] , main = TeX(r"(Proportion of times we accept/reject\n $H_{0}$ when is True)" , bold = T) ,cex.main = .8, names.arg = c("Reject" , "Accept"), ylim = c(0,1) , las = 1)
+barplot(t, col =c("#eb4934", '#9ee8e8') , main = TeX(r"(Proportion of times we accept/reject\n $H_{0}$ when is True)" , bold = T) ,cex.main = .8, names.arg = c("Reject" , "Accept"), ylim = c(0,1) , las = 1, border = "#2B3E50")
 
 
-hist(data[,2],freq = F , breaks = 6 , border = "white",
-      col = palette[2], main = TeX(r"(p-value distribution under $H_{0}$ )", bold = T) ,cex.main = .8, xlab = TeX(r"(\hat{p}-value)"), las=1)
-points(seq(0,1,length.out = 300) , rep(1,300) , col = palette[4] , cex = .8, )
+hist(data[,2],freq = F , breaks = 6 , border = "#2B3E50",
+      col = '#f6fa78', main = TeX(r"(p-value distribution under $H_{0}$ )", bold = T) ,cex.main = .8, xlab = TeX(r"(\hat{p}-value)"), las=1)
+points(seq(0,1,length.out = 300) , rep(1,300) , col = 'white' , type='l', lwd=2)
 
-legend("topright" , legend = "Uniform\ndistribution" , border = "white" , lty = 1, col = "#C6E2FF" , bty = "n", cex = .8, lwd = 2)
+legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = "#C6E2FF" , bty = "n", lwd = 3)
 
 ```
 
@@ -355,19 +365,19 @@ for(i in 1:length(ks)){
 ```
 
 ```{r plots change size ,fig.height = 4, fig.width = 9, fig.align = "center",echo = FALSE}
-par(mfrow=c(1,2))
+par(mfrow=c(1,2), col='white', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 
 load("data/alpha_fr_change_n.RData")
 load("data/alpha_per_change_n.RData")
 n0s <- c(20,50,70,100)   # Values of alpha tested
 
-{plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(sample size $n_{0}$)") , col = "#2274A5" , main = TeX(r"($alpha$ vs $n_{0}$ with $k = 5$ and $n_{1} = 70$)", bold = T), las=1)
-points(n0s , alpha_per , type = "l" , col = "#E7EB90" , lwd = 2)
+{plot(n0s ,alpha_Friedmann , type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(sample size $n_{0}$)") , col = "#f2f2f2" , main = TeX(r"($alpha$ vs $n_{0}$ with $k = 5$ and $n_{1} = 70$)", bold = T), las=1)
+points(n0s , alpha_per , type = "l" , col = "gold2" , lwd = 2)
 
 legend("topright" , legend = c("Goodness of fit test", "Two sample test") ,
-       col = c("#2274A5","#E7EB90") , border = "white" ,
+       col = c("#f2f2f2","gold2") , border = "white" ,
        lty = 1 , bty = "n", 
-       cex =.8, lwd = 2)
+       cex =.8, lwd = 3)
 grid()}
 
 
@@ -376,13 +386,13 @@ load("data/alpha_per_change_k.RData")
 load("data/alpha_fr_change_k.RData")
 ks <- c(5,20,70,100)
 
-{plot(alpha_fr_change_k, type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(dimensionality $k$)") , col = "#2274A5" , main = TeX(r"($alpha$ vs $k$ with $n_{0} = 70$ and $n_{1} = 70$)", bold = T), las=1)
-points(alpha_per_change_k, type = "l" , col = "#E7EB90" , lwd = 2)
+{plot(alpha_fr_change_k, type = "l" , ylim = c(0,0.2) , lwd = 2 , ylab = TeX(r"($\alpha$)")  ,xlab = TeX(r"(dimensionality $k$)") , col = "#f2f2f2" , main = TeX(r"($alpha$ vs $k$ with $n_{0} = 70$ and $n_{1} = 70$)", bold = T), las=1)
+points(alpha_per_change_k, type = "l" , col = "gold2" , lwd = 2)
 
 legend("topright" , legend = c("Goodness of fit test", "Two sample test") ,
-       col = c("#2274A5","#E7EB90") , border = "white" ,
+       col = c("#f2f2f2","gold2") , border = "white" ,
        lty = 1 , bty = "n", 
-       cex =.8, lwd = 2)
+       cex =.8, lwd = 3)
 grid()}
 
 ```
@@ -496,13 +506,14 @@ load("data/power_two_sample_test.RData")
 load("data/distance_Gof_two.RData")
 
 main_dimesion = .8
+par(col='#dedbd9', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 
 plot(distance,powers, main = TeX(r"(Power vs Distance $W_{2}^{2}(X,Z)$)" , bold = T), xlab = "distance", ylab = "power",
-     col = 'darkblue' , type = "o" , lwd = 2, las=1, cex.main=main_dimesion)
-points(distance, powers_2 , col = "darkred" , type = "o" , lwd = 2)
-legend("bottomright" , legend = c("GoF", "Two-sample") , col = c("darkblue","darkred"),border = "white" ,
+     col = '#f2f2f2' , type = "b" ,pch = 16, lwd = 2, las=1, cex.main=main_dimesion)
+points(distance, powers_2 , col = "gold2" , type = "b" ,pch=16, lwd = 2)
+legend("bottomright" , legend = c("GoF", "Two-sample") , col = c("#f2f2f2","gold2"),border = "white" ,
        lty = 1 , bty = "n", 
-       cex =.8, lwd = 2)
+       cex =.8, lwd = 3, pch=1)
 grid()
 
 ```
@@ -531,25 +542,29 @@ The plot on the right show how the power change according to the distance, let v
 
 ```{r plot distance power changing n0 and k, fig.height = 4, fig.width = 9, fig.align = "center" ,echo = FALSE}
 
-par(mfrow=c(1,2))
+par(mfrow=c(1,2), col='white', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 load('data/distance_power_n0.RData')
 
 colors <- c('cornflowerblue', 'chartreuse3', 'darkorchid2', 'chocolate1')
 colors <- c('darkblue', 'darkred', 'darkorchid2', 'darkorange')
 
 
-plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance',ylab='power', las=1, main = TeX('Power over distance with different $n_0$ with $n_1$=70 & k=20', bold=T), cex.main=main_dimesion) 
+plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance',ylab='power', las=1, main = TeX('Power vs distance with $n_1=70$ & $k=20$', bold=T), cex.main=main_dimesion) 
+grid(nx=NA, col="#f2f2f2", ny=NULL)
+
 for(i in 1:length(distance_power_n0)){
   points(distance_power_n0[[i]], type='l', col=colors[i], lwd=2)
   }
 
-legend('bottomright', legend=c(20,50,70,100), lwd=3, col = colors, bty='n', title = 'n0') 
+legend('bottomright', legend=c(20,50,70,100), lwd=3, col = colors, bty='n', title = TeX('$n_0$')) 
 
 
 
 load('data/distance_power_k.RData')
 
-plot(1,1, type='n', xlim=c(0,4), ylim=c(0,1), xlab='distance',ylab='power', las=1, main=TeX('Power over distance with different k with $n_0$=70 & $n_1$=60', bold=T),cex.main=main_dimesion)
+plot(1,1, type='n', xlim=c(0,4), ylim=c(0,1), xlab='distance',ylab='power', las=1, main=TeX('Power vs distance with $n_0=70$ & $n_1=60$', bold=T),cex.main=main_dimesion)
+grid(nx=NA, col="#f2f2f2", ny=NULL)
+
 for(i in 1:3){
   points(distance_power_k[[i]], type='l', col=colors[i], lwd=2)
   }
@@ -756,13 +771,13 @@ data <- data.frame(
   type = c( rep("variable 1", 50), rep("variable 2", 43) ),
   value = c( score_same[1:50], score_same[51:93]) )
 
-par(mfrow = c(1,2))
+par(mfrow = c(1,2), col='white', col.axis='white', col.lab='white', col.main='white', fg='white', bg="#2B3E50")
 # Represent it
 
 ggplot( data = data, aes(x=value, fill=type)) +
   geom_density( color="#e9ecef", alpha=0.6) +
   scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  labs(fill="") + theme_bw() + xlim(0, 1)
+  labs(fill="") + xlim(0, 1) + theme(panel.background = element_rect(fill="#2B3E50"), plot.background = element_rect(fill = "#2B3E50"))
 
 hist(bb, main = "Distribution of KS statistic under \n the null hypothesis",
      col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic", xlim = c(0,1))
