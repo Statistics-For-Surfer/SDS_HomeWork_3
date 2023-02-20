@@ -4,11 +4,11 @@ author: "Barba Paolo, Candi Matteo"
 
 output: 
   html_document:
-    code_folding: hide
-
-editor_options: 
-  markdown: 
-    wrap: 75
+     code_folding: hide
+  editor_options: 
+     markdown: 
+     
+        wrap: 75
 ---
 
 ```{=html}
@@ -41,11 +41,11 @@ lapply(packs, require, character.only = TRUE)
 ## Purpose and Statistical tools used
 
 The goal of the project is to perform Friedman's procedure as a proxy of
-multiple studies and apply it on fMRI (functional magnetic resonance
-imaging) data in order to test wheter the data from td (tipacally
-develpment) subjects and asd (authism spectrum disorder) subject came
+multiple studies and apply it to fMRI (functional magnetic resonance
+imaging) data in order to test whether the data from td (typically
+development) subjects and asd (autism spectrum disorder) subjects came
 from the same distribution or not. In order to reach this goal we used
-statistical tools as machine learning algorithm and two-sample
+statistical tools such as machine learning algorithms and two-sample
 Hypothesis testing.
 
 ## Exercise 3
@@ -53,7 +53,7 @@ Hypothesis testing.
 ### Two sample hypotesis test:
 
 Friedman's procedure is used for solving two-sample hypothesis testing
-when the each observation consists of many measured attributes
+when each observation consists of many measured attributes
 $x_{i} = x_{i_1}, x_{i_2} . . . x_{i_{M}}$ and
 $z_{i} = z_{i_1}, z_{i_2} . . . z_{i_{M}}$ where M is the dimensionality
 of the dataset and we have $n_{0}$ samples for $\underline{x}$ and
@@ -71,12 +71,13 @@ H_{0}: F_{x} = F_{z}\\ H_{1}: F_{x} \neq F_{z}
 
 \end{equation}
 ```
-Since the distribution we want to compare are multivariate ones, there
-are not variety of procedures that can compare them directly. The idea
+
+Since the distribution we want to compare is multivariate, there
+are not a variety of procedures that can compare directly. The idea
 then, is to perform classification machine learning algorithm as
 logistic regression, compute the scores of the observed data
 $\underline{s_{x}}$ and $\underline{s_{z}}$ and compare the univariate
-distribuion using two sample hypothesis test as Kolmogorov-Smirnov test.
+distribution using a two-sample hypothesis test as the Kolmogorov-Smirnov test.
 So the hypothesis system would be as the following:
 
 ```{=tex}
@@ -115,7 +116,7 @@ After this procedure, we obtain a set of statistics test
 $\underline{t} = {t_{1} \dots t_{n}}$.
 
 Under $H_{0}$, the entire data vector ${\underline{x} ,\underline{z}}$
-is an IID sample from a single distribution F, and so the group labels
+is an $i.i.d$ sample from a single distribution F, and so the group labels
 are meaningless.
 
 Then the observed statistics $\hat{t}$ is equally likely to be anywhere
@@ -128,10 +129,8 @@ value of $p$ is lower than $\alpha$.
 
 ### Goodness of fit test:
 
-The two sample hypothesis test can be turn to a goodness of fit test.
-Here we have the assumptions that the sample $\underline{z}$ came from
-an reference distribution (Say $F$). We can set up the following
-hypothesis system:
+The two-sample hypothesis test can be turned into a goodness of fit test assuming that the sample $\underline{z}$ came from
+a reference distribution (Say $F$). We can set up the following hypothesis system:
 
 ```{=tex}
 \begin{equation}
@@ -144,11 +143,13 @@ H_{0}: F_{x} = F\\ H_{1}: F_{x} \neq F
 
 \end{equation}
 ```
-Here we got only one sample
-$\underline{x} = \{ x_{i1} \dots x_{iM} \}_{i =1}^{N}$ and we want to
+
+
+In the goodness of fit hypothesis test, only one sample
+$\underline{x} = \{ x_{i1} \dots x_{iM} \}_{i =1}^{N}$ is available and the purpose is to
 test if this sample came from the reference distribution $F$. The
-distributions are still multivariate and we can use a classifiers to
-reduce a multivariate goodness of fit test into a univariate one. The
+distributions are still multivariate and we can use a classifier to
+reduce multivariate goodness of fit test into a univariate one. The
 hypothesis system change as the following:
 
 ```{=tex}
@@ -162,17 +163,18 @@ H_{0}: F_{s_{x}} = F_{s}\\ H_{1}: F_{s_{x}} \neq F_{s}
 
 \end{equation}
 ```
-To perform the above test we can use kolmogorov-Smirnov test and to get
-out the distribution of the kolmogorov statistics under the null
-hypothesis we can set up a Monte Carlo simulation as the following:
+
+To perform the above test it is still possible to use the Kolmogorov-Smirnov test. In order to get
+out the distribution of the Kolmogorov statistics under the null
+the hypothesis we can set up a Monte Carlo simulation as the following:
 
 <div>
 
 <ol>
 
-<li>Drawn a sample $z_{i}$ of size n1 from p0.</li>
+<li>Drawn a sample $z_{i}$ of size $n_{1}$ from $p_{0}$.</li>
 
-<li>Use them with the actual data to train the classification model and
+<li> Use them with the actual data to train the classification model and
 compute the scores.</li>
 
 <li>Compute the statistics test between the two scores sample.</li>
@@ -189,11 +191,11 @@ distribution of statistic test under the null hypothesis. So we can
 build the reject region $R_{\alpha}$ as the values of the test statistic
 greater than a threshold equal $1 - \alpha$ quantile of the
 distribution. We reject with significance level $\alpha$ if the observed
-statistics is greater than the threshold.
+statistics are greater than the threshold.
 
 We can compute the p-value
 $p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(T_j \geqslant T) = \{\text{proportion of permuted statistics larger than the original}\}$
-setting the decision rule in order to reject the null hypothesis if the
+setting the decision rule to reject the null hypothesis if the
 value of $p$ is lower than $\alpha$.
 
 
@@ -308,14 +310,14 @@ legend("topright" , legend = "Uniform\ndistribution" , border = "white" , lty = 
 
 ### Comments
 
-In the simulation above we are in a scenario were $n_{0} = n{1} = 70$,
-the dimensionality $k = 5$ and the simulation size $P = 100$ and we are
-dealing with goodness of fit test. First plot show the empirical size
+In the simulation above we are in a scenario where $n_{0} = n{1} = 70$,
+the dimensionality $k = 5$, and the simulation size $P = 100$ and we are
+dealing with the goodness of fit hypothesis test. The first plot shows the empirical size
 $\alpha \approx 0.05$ and the second one show the distribution of the
 observed $\hat{p}$ values with the theretical $Unif(0,1)$ distribution.
-Increasing $P$ it would fit better.
+Increasing $P$ the histograms would fit better with the theoretical distribution.
 
-The real goal of this type of simulations is to see how an algorithm
+The real goal of this type of simulation is to see how an algorithm
 would perform w.r.t to metrics as size and power while changing input
 parameters as $n_{0}, n_{1}, k$.
 
@@ -394,13 +396,12 @@ difference distribution to check how likely it is that our test rejects
 $H_{0}$ when it is false. We set up different scenarios where
 $F_{x} \neq F_{z}$ to generate the data under $H_{0}$ and count how many
 times we reject the null hypothesis. Of course, if the two distributions
-are close each other is more difficult to discover the difference and
+are close to each other is more difficult to discover the difference and
 reject $H_{0}$ then.
 
 In the simulation study we choose Gaussian parametric family for both
-$F_{x}$ and $F_{z}$, where $F_{z}$ has diffenent position parametes
-$\underline{\mu}$. We chose closed-form of Wasserstein distance as a
-distance $D(F_{x},F_{z}) = D(\underline{\mu_{x}} ,\underline{\mu_{z}})$
+$F_{x}$ and $F_{z}$, where $F_{z}$ has different position parameters
+$\underline{\mu}$ since it possible to compute a closed-form of Wasserstein distance of two distributions $D(F_{x},F_{z}) = D(\underline{\mu_{x}} ,\underline{\mu_{z}})$
 . $$
 \boldsymbol{X} \sim \mathrm{N}_k(\boldsymbol{\mu}_1, \Sigma_1)
 \hspace{.3cm}
@@ -519,13 +520,14 @@ In our case, we will remein in the context of two sample hypothesis test.
 
 
 ### Two sample hypothesis test power vs sample size and power vs dimensionality
-We focus our studies into the context of two sample hypothesis test.
-We set in differents scenarios, where the based on our knoledge simulation, the sample $\underline{x}$ came from a $F_{1} \sim N(\underline{\mu_{1}},\Sigma)$ and the sample $\underline{z}$ came from a $F_{2} \sim N(\underline{\mu_{2}},\Sigma)$ whith different $\underline{\mu_{2}}$. Greater the distance from  $\underline{\mu_{1}}$ and $\underline{\mu_{2}}$, more separeted will be the two distribution we are comparing, and so in all likelihood the test can detect the differences better.
-Specifically,we tweak the parameter $n_{0}$ and $k$ to get information about how the power varies with the distance and with the parameters values.
 
-The plot on the left show how the power change accordinf to the distance, let varying the sample size $n_{0}$.
+We focus our studies on the context of two sample hypothesis tests.
+We set in different scenarios, where based on our knowledge simulation, the sample $\underline{x}$ came from a $F_{1} \sim N(\underline{\mu_{1}},\Sigma)$ and the sample $\underline{z}$ came from a $F_{2} \sim N(\underline{\mu_{2}},\Sigma)$ with different $\underline{\mu_{2}}$. Greater the distance from  $\underline{\mu_{1}}$ and $\underline{\mu_{2}}$, the more separated will be the two distributions we are comparing, and so in all likelihood, the test can detect the differences better.
+Specifically, we tweak the parameter $n_{0}$ and $k$ to get information about how the power varies with the distance and with the parameter values.
 
-The plot on the right  show how the power change accordinf to the distance, let varying the dimensionality $k$.
+The plot on the left show how the power change according to the distance, let varying the sample size $n_{0}$.
+
+The plot on the right show how the power change according to the distance, let varying the dimensionality $k$.
 
 ```{r plot distance power changing n0 and k, fig.height = 4, fig.width = 9, fig.align = "center" ,echo = FALSE}
 
@@ -557,9 +559,10 @@ legend('bottomright', legend=c(5, 20, 50), lwd=3, col = colors, bty='n',title = 
 ```
 
 ## Comments
-In both plots, greater the distance, gretear the power will be.
-Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distribution and the performance of the test both on the side and the power would be better.
-Increase the dimesionality will increase the distance from the distributions first, with the small amount of data,  higher the dimension , the thinner the information effectively available to resolve the difference would be.
+
+In both plots, the greater the distance, the greater the power will be.
+Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distributions and the performance of the test both on the side and the power would be better.
+Increasing the dimensionality will increase the distance from the distributions first, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be.
 
 # Exercise 4
 
@@ -575,14 +578,14 @@ Imaging Data Exchange); a collection of brain imaging data and clinical
 information from individuals with autism spectrum disorder (ASD) and
 typically developing (TD) controls.
 
-The dataset consists a of structural and functional fMRI data from over
+The dataset consists of structural and functional fMRI data from over
 85 individuals with ASD and 93 TD controls.
 
 Since data were taken in different labs, it's worth removing the
-lab-specific effect normalizing over all the differents labs.
+lab-specific effect normalizing over all the different labs.
 
-As the previus study suggests, to try to separate the two groups (ASD vs TD) we will by digging (linear) dependencies of cortical regions. Such that we will study the time series of the autocorrelation instead of the original ones.
-The autocorrelation is defined as : $AC(t1,t2) = Corr(X_{t_1} ,X_{t_2})$.
+As the previous study suggests, to try to separate the two groups (ASD vs TD) we will by digging (linear) dependencies of cortical regions. Such that we will study the time series of the autocorrelation instead of the original ones.
+Autocorrelation is defined as : $AC(t1,t2) = Corr(X_{t_1} ,X_{t_2})$.
 
 
 ```{r scale dataset by lab, eval=FALSE}
@@ -772,9 +775,10 @@ legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
 ```
 
 ### Comments
-The first plot show the two distrubution of the Kolmogorov-Smirnov scores for both the sample. The second one show the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
-Since the decision rule is to reject the null hypothesis if the observed value of kolmogorov smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data don't show enough difference in order to reject the null hypothesis, we claim that the distribution of the scores are the same.
+The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
+
+Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data don't show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores is the same
 
 
 ### Perform the test with td (label as 0) and asd (label as 1) subjects
@@ -841,11 +845,12 @@ legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
 ```
 
 ### Comments
-The first plot show the two distrubution of the Kolmogorov-Smirnov scores for both the sample. The second one show the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
-Since the decision rule is to reject the null hypothesis if the observed value of kolmogorov smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data show enough difference in order to reject the null hypothesis, we claim that the distribution of the scores of asd and td subjects are differents.
+The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
+
+Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores of asd and td subjects are different.
 
 ### Conclusion and final remark
 
-In the case of intersest we are dealing with a noisy and small set of data, and the higher the dimension the "thinner" the information effectively available to 
+In the case of interest we are dealing with a noisy and small set of data, and the higher the dimension the "thinner" the information effectively available to 
 resolve the difference. Such procedure depends strictly to the sample size, expecially with high dimension and so it is worth to collect more data to let the procedure more consistent.
