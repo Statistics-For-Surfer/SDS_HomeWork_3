@@ -32,6 +32,9 @@ code.r{
 pre {
   font-size: 12px
 }
+title {
+font-style: bold
+}
 </style>
 ```
 
@@ -58,14 +61,14 @@ from the same distribution or not. In order to reach this goal we used
 statistical tools such as machine learning algorithms and two-sample
 Hypothesis testing.
 
-## Exercise 3
+## **Exercise 3**
 
 #### Two sample hypotesis test:
 
 Friedman's procedure is used for solving two-sample hypothesis testing
 when each observation consists of many measured attributes
-$x_{i} = x_{i_1}, x_{i_2} . . . x_{i_{M}}$ and
-$z_{i} = z_{i_1}, z_{i_2} . . . z_{i_{M}}$ where M is the dimensionality
+$x_{i} = (x_{i_1}, x_{i_2} . . . x_{i_{M}})$ and
+$z_{i} = (z_{i_1}, z_{i_2} . . . z_{i_{M}})$ where M is the dimensionality
 of the dataset and we have $n_{0}$ samples for $\underline{x}$ and
 $n_{1}$ samples for $\underline{z}$. We create then a hypothesis system
 as the following:
@@ -305,11 +308,11 @@ palette <- c("#FF6F59", "#FFFD98", "#BDE4A7", "#9FBBCC", "#00487C" )
 par(mfrow=c(1,2), col='white', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 load("data/alpha_info_1.RData")
 t <- proportions(table(data[,1]))
-barplot(t, col =c("#eb4934", '#9ee8e8') , main = TeX(r"(Proportion of times we accept/reject\n $H_{0}$ when is True)" , bold = T) ,cex.main = .8, names.arg = c("Reject" , "Accept"), ylim = c(0,1) , las = 1, border = "#2B3E50")
+barplot(t, col =c("#eb4934", '#9ee8e8') , main = TeX(r"(Proportion of times we accept / reject $H_{0}$ when is True)" , bold = T) ,cex.main = .9, names.arg = c("Reject" , "Accept"), ylim = c(0,1) , las = 1, border = "#2B3E50")
 
 
 hist(data[,2],freq = F , breaks = 6 , border = "#2B3E50",
-      col = '#f6fa78', main = TeX(r"(p-value distribution under $H_{0}$ )", bold = T) ,cex.main = .8, xlab = TeX(r"(\hat{p}-value)"), las=1)
+      col = 'khaki1', main = TeX(r"(p-value distribution under $H_{0}$ )", bold = T), xlab = TeX(r"(\hat{p}-value)"), las=1)
 points(seq(0,1,length.out = 300) , rep(1,300) , col = 'white' , type='l', lwd=2)
 
 legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = "#C6E2FF" , bty = "n", lwd = 3)
@@ -318,13 +321,13 @@ legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = 
 
 
 
-##### Comments
+##### Comment
 
 In the simulation above we are in a scenario where $n_{0} = n{1} = 70$,
 the dimensionality $k = 5$, and the simulation size $P = 100$ and we are
 dealing with the goodness of fit hypothesis test. The first plot shows the empirical size
 $\alpha \approx 0.05$ and the second one show the distribution of the
-observed $\hat{p}$ values with the theretical $Unif(0,1)$ distribution.
+observed $\hat{p}$ values with the theoretical $Unif(0,1)$ distribution.
 Increasing $P$ the histograms would fit better with the theoretical distribution.
 
 The real goal of this type of simulation is to see how an algorithm
@@ -377,7 +380,7 @@ points(n0s , alpha_per , type = "l" , col = "gold2" , lwd = 2)
 legend("topright" , legend = c("Goodness of fit test", "Two sample test") ,
        col = c("#f2f2f2","gold2") , border = "white" ,
        lty = 1 , bty = "n", 
-       cex =.8, lwd = 3)
+       cex =.9, lwd = 3)
 grid()}
 
 
@@ -392,7 +395,7 @@ points(alpha_per_change_k, type = "l" , col = "gold2" , lwd = 2)
 legend("topright" , legend = c("Goodness of fit test", "Two sample test") ,
        col = c("#f2f2f2","gold2") , border = "white" ,
        lty = 1 , bty = "n", 
-       cex =.8, lwd = 3)
+       cex =.9, lwd = 3)
 grid()}
 
 ```
@@ -496,17 +499,17 @@ for (i in (ll)){
 ```
 
 
-```{r plot power info twosamplegof , , fig.height = 4, fig.width = 5, fig.align = "center" ,echo = FALSE}
+```{r plot power info twosamplegof , fig.height = 4, fig.width = 5, fig.align = "center" ,echo = FALSE}
 
 load("data/power_GoF.RData")
 load("data/power_two_sample_test.RData")
 load("data/distance_Gof_two.RData")
 
-main_dimesion = .8
+
 par(col='#dedbd9', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 
-plot(distance,powers, main = TeX(r"(Power vs Distance $W_{2}^{2}(X,Z)$)" , bold = T), xlab = "distance", ylab = "power",
-     col = '#f2f2f2' , type = "b" ,pch = 16, lwd = 2, las=1, cex.main=main_dimesion)
+plot(distance,powers, main = TeX("Power vs Distance $W_{2}^{2}(X,Z)$" , bold = T), xlab = "distance", ylab = "power",
+     col = '#f2f2f2' , type = "b" ,pch = 16, lwd = 2, las=1)
 points(distance, powers_2 , col = "gold2" , type = "b" ,pch=16, lwd = 2)
 legend("bottomright" , legend = c("GoF", "Two-sample") , col = c("#f2f2f2","gold2"),border = "white" ,
        lty = 1 , bty = "n", 
@@ -518,13 +521,13 @@ grid()
 
 
 
-##### Comments
+##### Comment
 
 In the Goodness of fit hypothesis testing we use the additional
 information of the distribution of $F_{z} = F$, such of that, this
 procedure has the potential to increase the power of the test. However,
 in the real application when our knowledge is as limited knowing only the sample and, so to perform goodness of fit test we need to assume a reference distribution of the variable. This can be done with using past knowledge and studies.
-In our case, we will remein in the context of two sample hypothesis test.
+In our case, we will remain in the context of two sample hypothesis test.
 
 
 #### Test power vs sample size and test power vs dimensionality
@@ -542,40 +545,36 @@ The plot on the right show how the power change according to the distance, let v
 par(mfrow=c(1,2), col='white', col.axis='white', col.lab='#B8BCC2', col.main='#B8BCC2', fg='white', bg="#2B3E50")
 load('data/distance_power_n0.RData')
 
-colors <- c('white', 'gold2', 'green', 'orchid')
+colors <- c('white', 'gold2', 'green', 'coral1')
 
 
-plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance',ylab='power', las=1, main = TeX('Power vs distance with $n_1=70$ & $k=20$', bold=T), cex.main=main_dimesion) 
+plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance',ylab='power', las=1, main = TeX('Power vs distance with $n_1=70$ & $k=20$', bold=T)) 
 grid(nx=NA, col="#f2f2f2", ny=NULL)
-
 for(i in 1:length(distance_power_n0)){
   points(distance_power_n0[[i]], type='l', col=colors[i], lwd=2)
   }
-
 legend('bottomright', legend=c(20,50,70,100), lwd=3, col = colors, bty='n', title = TeX('$n_0$')) 
 
 
 
 load('data/distance_power_k.RData')
 
-plot(1,1, type='n', xlim=c(0,4), ylim=c(0,1), xlab='distance',ylab='power', las=1, main=TeX('Power vs distance with $n_0=70$ & $n_1=60$', bold=T),cex.main=main_dimesion)
+plot(1,1, type='n', xlim=c(0,4), ylim=c(0,1), xlab='distance',ylab='power', las=1, main=TeX('Power vs distance with $n_0=70$ & $n_1=60$', bold=T))
 grid(nx=NA, col="#f2f2f2", ny=NULL)
-
 for(i in 1:3){
   points(distance_power_k[[i]], type='l', col=colors[4-i], lwd=2)
   }
-
 legend('bottomright', legend=c(5, 20, 50), lwd=3, col = colors, bty='n',title = 'k')
 
 ```
 
-##### Comments
+##### Comment
 
 In both plots, the greater the distance, the greater the power will be.
 Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distributions and the performance of the test both on the side and the power would be better.
 Increasing the dimensionality will increase the distance from the distributions first, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be.
 
-## Exercise 4
+## **Exercise 4**
 
 ```{r load dataframe asd td, echo = FALSE}
 load('hw3_data.RData')
@@ -593,7 +592,7 @@ The dataset consists of structural and functional fMRI data from over
 85 individuals with ASD and 93 TD controls.
 
 Since data were taken in different labs, it's worth removing the
-lab-specific effect normalizing over all the different labs.
+lab-specific effect normalizing over all the different labs. So we scale the patient's values with the mean and the standard deviation of all data of the laboratory that takes the datas of the patient's brain. In this way we can compare subjects coming from different laboratories.
 
 As the previous study suggests, to try to separate the two groups (ASD vs TD) we will by digging (linear) dependencies of cortical regions. Such that we will study the time series of the autocorrelation instead of the original ones.
 Autocorrelation is defined as : $AC(t1,t2) = Corr(X_{t_1} ,X_{t_2})$.
@@ -664,7 +663,7 @@ for(p in 1:length(asd_corr)){
  
 ```
 
-For each time series we extract three features: Mean , Median and standard deviation.
+For each time series we extract three features: *Mean*, *Median* and *Standard Deviation*.
 
 
 ```{r summaries of data, eval=FALSE}
@@ -688,11 +687,11 @@ names(z_data)[ncol(z_data)] <- 'label'
 
 ```
 
-Since the data we collect are a finite sample ($n_{0} + n_{1} = 93 + 85 = 178$) with high dimensionality $k = 116 \times 3 = 348$ the machine learning algorithm as logisti regression would not work. Such that we need to regularize setting an early stopping and a $l_{2}$ regularization.
+Since the data we collect are a finite sample ($n_{0} + n_{1} = 93 + 85 = 178$) with high dimensionality $k = 116 \times 3 = 348$ the machine learning algorithm as logistic regression would not work. Such that we need to regularize setting an early stopping and a $l_{2}$ regularization.
 
 To perform the test in both cases, when the null hypothesis $H_{0}$ (the distributions of the scores for the groups are the same) is true and when is false, we split the td dataset in two in order to check the result of the test.
 
-#### Perform the test with TD (label as 0) and ASD (label as 1) subjects
+#### Perform the test with TD and ASD subjects respectively with the labels 0 and 1
 
 ```{r Friedman regularized, eval = FALSE}
 Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
@@ -727,7 +726,7 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
   return(kolm_t)
   
 }
-`````
+```
 
 
 ```{r performing the Friedmann procedure same dataset, warning = FALSE,eval=FALSE}
@@ -756,55 +755,46 @@ k_obs_1 < quantile(aa, 0.95)
 
 
 
-
-```{r plot score_same, echo=FALSE , warning= FALSE, fig.width=9,fig.height=5}
+#### Same group (TD subjects)
+```{r plot score_same, echo=FALSE , warning= FALSE, fig.width=10,fig.height=5.5}
 load("data/score_same.RData")
 load("data/k_obs_same.RData")
 load("data/test_4_same.RData")
 
 # Build dataset with different distributions
-data <- data.frame(
-  type = c( rep("variable 1", 50), rep("variable 2", 43) ),
-  value = c( score_same[1:50], score_same[51:93]) )
-
 par(mfrow = c(1,2), col='white', col.axis='white', col.lab='white', col.main='white', fg='white', bg="#2B3E50")
-# Represent it
-
-ggplot( data = data, aes(x=value, fill=type)) +
-  geom_density( color="#e9ecef", alpha=0.6) +
-  scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  labs(fill="") + xlim(0, 1) + theme(panel.background = element_rect(fill="#2B3E50"), plot.background = element_rect(fill = "#2B3E50"))
-
 
 first <- density(score_same[1:50])
 second <- density(score_same[51:93])
 
-plot(first, xlim=c(0,.8), xlab='scores', lwd=.1, las=1)
+plot(first, xlim=c(0,1), xlab='scores', lwd=.1, las=1, main= "Distribution of scored for two group of TD subjects")
 lines(second, lwd=.1)
 
-polygon(first, col=rgb(1,0,0,.2))
-polygon(second, col=rgb(0,0,1,.2))
+dens_col <- c(rgb(0.2274510, 0.9411765, 0.6078431,.4),rgb(0.9882353, 0.9882353, 0.9882353, .4) )
+
+polygon(first, col=dens_col[1])
+polygon(second, col=dens_col[2])
+legend('topright', legend=c('group 1', 'group 2'), pch = 15, col=dens_col, cex=1.2, bty='n')
 grid(lty=2, lwd=.6)
 
 
-hist(bb, main = "Distribution of KS statistic under \n the null hypothesis",
-     col = "cyan4" , border = "#2B3E50" , freq = F , xlab = "ks statistic", xlim = c(0,1), las=1)
+hist(bb, main = TeX("Distribution of KS statistic under $H_0$", bold=T),
+     col = "khaki1" , border = "#2B3E50" , freq = F , xlab = "ks statistic", xlim = c(0,1), las=1, ylim=c(0,8))
 abline(v = quantile(bb, 0.95), col = "red", lwd = 2 , lty = 2)
-abline(v = k2 , col = "darkblue", lwd = 2, lty = 2)
-legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
-       bty = "n", col = c("red","darkblue"),
-       cex =.8, lwd = 2)
+abline(v = k2 , col = "steelblue3", lwd = 2, lty = 2)
+legend("topleft" , legend = c("Threshold" , "Observed\n  statistic") , lty = 2 ,
+       bty = "n", col = c("red","steelblue3"), lwd = 2, cex=1.2)
 
 ```
 
-##### Comments
+##### Comment
 
 The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
 Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data don't show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores is the same
 
 
-#### Perform the test with td (label as 0) and asd (label as 1) subjects
+#### Different groups (TD and ASD subjects)
 
 ```{r performing the Friedmann procedure different dataset, warning = FALSE, eval=FALSE}
  dim(x_data)
@@ -837,37 +827,37 @@ k2 < quantile(bb, 0.95)
 
 
 
-```{r plot scores different , warning=FALSE , echo= FALSE}
+```{r plot scores different , warning=FALSE , echo= FALSE, fig.width=10,fig.height=5.5}
 load("data/score_different.RData")
 load("data/test_4_different.RData")
 load("data/k_obs_different.RData")
 
-# Build dataset with different distributions
-data <- data.frame(
-  type = c( rep("variable 1", 50), rep("variable 2", 85) ),
-  value = c( score_different[1:50], score_different[51:135])
-  )
+par(mfrow = c(1,2), col='white', col.axis='white', col.lab='white', col.main='white', fg='white', bg="#2B3E50")
 
 
-# Represent it
+first <- density(score_different[1:50])
+second <- density(score_different[51:93])
 
-ggplot( data = data, aes(x=value, fill=type)) +
-  geom_density( color="#e9ecef", alpha=0.6) +
-  scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  labs(fill="") + theme_bw() + xlim(0, 1)
+plot(second, xlim=c(0,1), xlab='scores', lwd=.1, las=1, main='Distribution of scored for TD and ASD subjects')
+lines(first, lwd=.1)
+legend('topleft', legend=c('TD', 'ASD'), pch = 15, col=dens_col, cex=1.2, bty='n')
+polygon(first, col=dens_col[1])
+polygon(second, col=dens_col[2])
+grid(lty=2, lwd=.6)
 
 
-hist(aa, main = "Distribution of KS statistic under \n the null hypothesis",
-     col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic", xlim = c(0,1))
+
+
+hist(aa, main = TeX("Distribution of KS statistic under $H_0$", bold=T),
+     col = "khaki1" , border = "#2B3E50" , freq = F , xlab = "ks statistic", xlim = c(0,1), ylim=c(0,8), las=1)
 abline(v = quantile(aa, .95), col = "red", lwd = 2 , lty = 2)
-abline(v = k_obs_1 , col = "darkblue", lwd = 2, lty = 2)
-legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
-       bty = "n", col = c("red","darkblue"),
-       cex =.8, lwd = 2)
+abline(v = k_obs_1 , col = "steelblue3", lwd = 2, lty = 2)
+legend("topleft" , legend = c("Threshold" , "Observed \n  statistic") , lty = 2 ,
+       bty = "n", col = c("red","steelblue3"), lwd = 2, cex=1.2)
 
 ```
 
-##### Comments
+##### Comment
 
 The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
