@@ -509,11 +509,18 @@ grid()
 In the Goodness of fit hypothesis testing we use the additional
 information of the distribution of $F_{z} = F$, such of that, this
 procedure has the potential to increase the power of the test. However,
-in the real case we simply got two sample without having this
-info..[TODO] continua
+in the real application when our knowledge is as limited knowing only the sample and, so to perform goodness of fit test we need to assume a reference distribution of the variable. This can be done with using past knowledge and studies.
+In our case, we will remein in the context of two sample hypothesis test.
 
 
 ### Two sample hypothesis test power vs sample size and power vs dimensionality
+We focus our studies into the context of two sample hypothesis test.
+We set in differents scenarios, where the based on our knoledge simulation, the sample $\underline{x}$ came from a $F_{1} \sim N(\underline{\mu_{1}},\Sigma)$ and the sample $\underline{z}$ came from a $F_{2} \sim N(\underline{\mu_{2}},\Sigma)$ whith different $\underline{\mu_{2}}$. Greater the distance from  $\underline{\mu_{1}}$ and $\underline{\mu_{2}}$, more separeted will be the two distribution we are comparing, and so in all likelihood the test can detect the differences better.
+Specifically,we tweak the parameter $n_{0}$ and $k$ to get information about how the power varies with the distance and with the parameters values.
+
+The plot on the left show how the power change accordinf to the distance, let varying the sample size $n_{0}$.
+
+The plot on the right  show how the power change accordinf to the distance, let varying the dimensionality $k$.
 
 ```{r plot distance power changing n0 and k, fig.height = 4, fig.width = 9, fig.align = "center" ,echo = FALSE}
 
@@ -543,9 +550,11 @@ for(i in 1:4){
 legend('right', legend=c(5, 20, 50, 100), lwd=3, col = colors, bty='n',title = 'k')
 
 ```
-[TODO] Comment plot above (in caso a destra rimuovi k = 100 iterando la i fino a 3 e togliendo l'etichetta dalla legenda)
 
-
+## Comments
+In both plots, greater the distance, gretear the power will be.
+Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distribution and the performance of the test both on the side and the power would be better.
+Increase the dimesionality will increase the distance from the distributions first, with the small amount of data,  higher the dimension , the thinner the information effectively available to resolve the difference would be.
 
 # Exercise 4
 
@@ -567,7 +576,8 @@ The dataset consists a of structural and functional fMRI data from over
 Since data were taken in different labs, it's worth removing the
 lab-specific effect normalizing over all the differents labs.
 
-[TODO] Why we use time series of autocorrelations. 
+As the previus study suggests, to try to separate the two groups (ASD vs TD) we will by digging (linear) dependencies of cortical regions. Such that we will study the time series of the autocorrelation instead of the original ones.
+The autocorrelation is defined as : $AC(t1,t2) = Corr(X_{t_1} ,X_{t_2})$.
 
 
 ```{r scale dataset by lab, eval=FALSE}
@@ -635,9 +645,7 @@ for(p in 1:length(asd_corr)){
  
 ```
 
-
-
-We take means, medians and standard deviations as summaries of our data.
+For each time series we extract three features: Mean , Median and standard deviation.
 
 
 ```{r summaries of data, eval=FALSE}
@@ -661,7 +669,12 @@ names(z_data)[ncol(z_data)] <- 'label'
 
 ```
 
-[TODO] Procedure actuated to hypotesis test on real data
+Since the data we collect are a finite sample ($n_{0} + n_{1} = 93 + 85 = 178$) with high dimensionality $k = 116 \times 3 = 348$ the machine learning algorithm as logisti regression would not work. Such that we need to regularize setting an early stopping and a $l_{2}$ regularization.
+
+To perform the test in both cases, when the null hypothesis $H_{0}$ (the distributions of the scores for the groups are the same) is true and when is false, we split the td dataset in two in order to check the result of the test.
+
+### Perform the test with td (label as 0) and td (label as 1) subjects
+
 ```{r Friedman regularized, eval = FALSE}
 Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
   x_fri <- x_data       # Copy the data
@@ -698,7 +711,7 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
 `````
 
 
-```{r performing the Friedmann procedure same dataset, warning = FALSE, eval=FALSE}
+```{r performing the Friedmann procedure same dataset, warning = FALSE,eval=FALSE}
 u <- as.matrix(rbind(x_data[1:50,],z_data))
 k <- dim(u)[2]
 n0 <- 50
@@ -714,8 +727,6 @@ my_model <- glmnet(
 )
 
 sc <- predict(my_model, u[,1:(k-1)] , s = 0.05)
-hist(sc[1:50], xlim = c(0,1), freq = F)
-hist(sc[51:135], add = T, col = "red", freq = F)
 
 aa <- Friedman_procedure(100,x_data = x_data[1:50,], z_data = z_data, permut = T )
 k_obs_1 <- ks.test(sc[1:50] , sc[51:135])$statistic
@@ -727,7 +738,7 @@ k_obs_1 < quantile(aa, 0.95)
 
 
 
-```{r plot score_same, echo=FALSE}
+```{r plot score_same, echo=FALSE , warning= FALSE}
 load("data/score_same.RData")
 load("data/k_obs_same.RData")
 load("data/test_4_same.RData")
@@ -737,16 +748,16 @@ data <- data.frame(
   type = c( rep("variable 1", 50), rep("variable 2", 43) ),
   value = c( score_same[1:50], score_same[51:93]) )
 
-
+par(mfrow = c(1,2))
 # Represent it
 
 ggplot( data = data, aes(x=value, fill=type)) +
   geom_density( color="#e9ecef", alpha=0.6) +
   scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  labs(fill="") + theme_bw() 
+  labs(fill="") + theme_bw() + xlim(0, 1)
 
 hist(bb, main = "Distribution of KS statistic under \n the null hypothesis",
-     col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic")
+     col = "cyan4" , border = "white" , freq = F , xlab = "ks statistic", xlim = c(0,1))
 abline(v = quantile(bb, 0.95), col = "red", lwd = 2 , lty = 2)
 abline(v = k2 , col = "darkblue", lwd = 2, lty = 2)
 legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
@@ -754,7 +765,15 @@ legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
        cex =.8, lwd = 2)
 
 ```
+
 ### Comments
+The first plot show the two distrubution of the Kolmogorov-Smirnov scores for both the sample. The second one show the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
+
+Since the decision rule is to reject the null hypothesis if the observed value of kolmogorov smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data don't show enough difference in order to reject the null hypothesis, we claim that the distribution of the scores are the same.
+
+
+### Perform the test with td (label as 0) and asd (label as 1) subjects
+
 ```{r performing the Friedmann procedure different dataset, warning = FALSE, eval=FALSE}
  dim(x_data)
 u_2 <- as.matrix(x_data)
@@ -771,8 +790,6 @@ model_2 <- glmnet(
   maxit = 100
 )
 sc_2 <- predict(model_2, u_2[, 1:(k - 1)] , s = 0.7)
-hist(sc_2[1:50], xlim = c(0, 1))
-hist(sc_2[51:93], add = T, col = "red")
 k2 <- ks.test(sc_2[1:50] , sc_2[51:93])$statistic
 
 bb <-
@@ -787,7 +804,8 @@ k2 < quantile(bb, 0.95)
 ```
 
 
-```{r plot scores different}
+
+```{r plot scores different , warning=FALSE , echo= FALSE}
 load("data/score_different.RData")
 load("data/test_4_different.RData")
 load("data/k_obs_different.RData")
@@ -804,7 +822,7 @@ data <- data.frame(
 ggplot( data = data, aes(x=value, fill=type)) +
   geom_density( color="#e9ecef", alpha=0.6) +
   scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  labs(fill="") + theme_bw()
+  labs(fill="") + theme_bw() + xlim(0, 1)
 
 
 hist(aa, main = "Distribution of KS statistic under \n the null hypothesis",
@@ -816,3 +834,13 @@ legend("topleft" , legend = c("Threshold" , "observed statistic") , lty = 2 ,
        cex =.8, lwd = 2)
 
 ```
+
+### Comments
+The first plot show the two distrubution of the Kolmogorov-Smirnov scores for both the sample. The second one show the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
+
+Since the decision rule is to reject the null hypothesis if the observed value of kolmogorov smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data show enough difference in order to reject the null hypothesis, we claim that the distribution of the scores of asd and td subjects are differents.
+
+### Conclusion and final remark
+
+In the case of intersest we are dealing with a noisy and small set of data, and the higher the dimension the "thinner" the information effectively available to 
+resolve the difference. Such procedure depends strictly to the sample size, expecially with high dimension and so it is worth to collect more data to let the procedure more consistent.
