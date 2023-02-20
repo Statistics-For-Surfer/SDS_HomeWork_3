@@ -63,7 +63,7 @@ Hypothesis testing.
 
 ## **Exercise 3**
 
-#### Two sample hypotesis test:
+#### Two sample hypothesis test:
 
 Friedman's procedure is used for solving two-sample hypothesis testing
 when each observation consists of many measured attributes
@@ -129,14 +129,13 @@ After this procedure, we obtain a set of statistics test
 $\underline{t} = {t_{1} \dots t_{n}}$.
 
 Under $H_{0}$, the entire data vector ${\underline{x} ,\underline{z}}$
-is an $i.i.d$ sample from a single distribution F, and so the group labels
-are meaningless.
+is an $i.i.d$ sample from a single distribution F, the group identity is exchangeable. In the following, we work under the permutation null distribution, which places $\frac{1}{(n_{0} + n_{1})!}$ probability of each of the permutation of the group labels.
 
 Then the observed statistics $\hat{t}$ is equally likely to be anywhere
 in $\underline{t}$.
 
 We can compute the p-value
-$p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(T_j \geqslant T) = \{\text{proportion of permuted statistics larger than the original}\}$
+$p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(t_j \geqslant \hat{t}) = \{\text{proportion of permuted statistics larger than the observed one}\}$
 setting the decision rule in order to reject the null hypothesis if the
 value of $p$ is lower than $\alpha$.
 
@@ -207,7 +206,7 @@ distribution. We reject with significance level $\alpha$ if the observed
 statistics are greater than the threshold.
 
 We can compute the p-value
-$p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(T_j \geqslant T) = \{\text{proportion of permuted statistics larger than the original}\}$
+$p = \frac{1}{N} \sum_{j=1}^N \mathbb{I}(t_j \geqslant \hat{t}) = \{\text{proportion of permuted statistics larger than the original}\}$
 setting the decision rule to reject the null hypothesis if the
 value of $p$ is lower than $\alpha$.
 
@@ -240,11 +239,7 @@ Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
     z_p$label <- labels[idx[(n0+1):(n0+n1)]]
     }   # Permuted label
     u_p <- as.data.frame(rbind(x_fri,z_p))      # Row bind the two data frame
-    glm_f <-train(
-      x =  u_p[,1:(k-1)],
-      y = u_p[,k],
-      method = "glmnet"
-      )
+    glm_f <- glm(label ~ . , data = u_p )
     # Train the model
     scores <- predict(glm_f ,u_p[,1:k], s = 0.05)         # Compute the scores
     u_p <- as.data.frame(u_p)
@@ -315,13 +310,13 @@ hist(data[,2],freq = F , breaks = 6 , border = "#2B3E50",
       col = 'khaki1', main = TeX(r"(p-value distribution under $H_{0}$ )", bold = T), xlab = TeX(r"(\hat{p}-value)"), las=1)
 points(seq(0,1,length.out = 300) , rep(1,300) , col = 'white' , type='l', lwd=2)
 
-legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = "#C6E2FF" , bty = "n", lwd = 3)
+legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = "white" , bty = "n", lwd = 3)
 
 ```
 
 
 
-##### Comment
+#### Comments
 
 In the simulation above we are in a scenario where $n_{0} = n{1} = 70$,
 the dimensionality $k = 5$, and the simulation size $P = 100$ and we are
@@ -334,7 +329,7 @@ The real goal of this type of simulation is to see how an algorithm
 would perform w.r.t to metrics as size and power while changing input
 parameters as $n_{0}, n_{1}, k$.
 
-#### Performance with rispect to $\alpha$
+#### Performance with rispect to the size $\alpha$
 
 ```{r changing alpha, changing n0, warning=FALSE , eval = FALSE}
 # Changing n0.
@@ -400,21 +395,25 @@ grid()}
 
 ```
 
+####  Comments
 
-#### Performance with rispect to the power $1 - \beta$
+Since the test is built to control the type I error $\alpha$  it should be noted that the empirical result is approximately close to the desired control $0.05$, especially when the amount of data grows. As the dimensionality grows plot shows that the test has more difficult controlling the type I error. When the dimensionality is high, the performance of the test depends a lot on the machine learning algorithm used. More flexible algorithms would perform better than complex ones.
+
+
+### Performance with rispect to the power $1 - \beta$
 
 To get out information about the power of the test (probability to get a
 correct discovery) we set up a simulation generating sample from
 difference distribution to check how likely it is that our test rejects
 $H_{0}$ when it is false. We set up different scenarios where
-$F_{x} \neq F_{z}$ to generate the data under $H_{0}$ and count how many
+$F_{x} \neq F_{z}$ and count how many
 times we reject the null hypothesis. Of course, if the two distributions
 are close to each other is more difficult to discover the difference and
-reject $H_{0}$ then.
+reject $H_{0}$ then. If the two distributions are far to each other, it would be easier for the test detect the differences and reject $H_{0}$ then.
 
 In the simulation study we choose Gaussian parametric family for both
-$F_{x}$ and $F_{z}$, where $F_{z}$ has different position parameters
-$\underline{\mu}$ since it possible to compute a closed-form of Wasserstein distance of two distributions $D(F_{x},F_{z}) = D(\underline{\mu_{x}} ,\underline{\mu_{z}})$
+$F_{x}$ and $F_{z}$, let change the  $F_{z}$  position parameters
+$\underline{\mu}$ since it possible to compute a closed-form of Wasserstein distance of two distributions for two multivariate normal distributions $D(F_{x},F_{z}) = D(\underline{\mu_{x}} ,\underline{\mu_{z}})$
 . $$
 \boldsymbol{X} \sim \mathrm{N}_k(\boldsymbol{\mu}_1, \Sigma_1)
 \hspace{.3cm}
@@ -521,18 +520,20 @@ grid()
 
 
 
-##### Comment
+##### Comments
 
 In the Goodness of fit hypothesis testing we use the additional
 information of the distribution of $F_{z} = F$, such of that, this
 procedure has the potential to increase the power of the test. However,
-in the real application when our knowledge is as limited knowing only the sample and, so to perform goodness of fit test we need to assume a reference distribution of the variable. This can be done with using past knowledge and studies.
+in the real application when our knowledge is as limited knowing only the sample and, so to perform goodness of fit test we need to assume a reference distribution for the sample. This can be done with using past knowledge and studies.
 In our case, we will remain in the context of two sample hypothesis test.
 
 
 #### Test power vs sample size and test power vs dimensionality
 
-We focus our studies on the context of two sample hypothesis tests.
+The test's usefulness is based on its ability to distinguish among a diverse range of alternative hypotheses. In this section, we present the outcomes of different simulation studies that investigate the test's power for various alternative hypotheses across multiple dimensions.
+
+We focus our studies on the context of two sample hypothesis test.
 We set in different scenarios, where based on our knowledge simulation, the sample $\underline{x}$ came from a $F_{1} \sim N(\underline{\mu_{1}},\Sigma)$ and the sample $\underline{z}$ came from a $F_{2} \sim N(\underline{\mu_{2}},\Sigma)$ with different $\underline{\mu_{2}}$. Greater the distance from  $\underline{\mu_{1}}$ and $\underline{\mu_{2}}$, the more separated will be the two distributions we are comparing, and so in all likelihood, the test can detect the differences better.
 Specifically, we tweak the parameter $n_{0}$ and $k$ to get information about how the power varies with the distance and with the parameter values.
 
@@ -572,7 +573,7 @@ legend('bottomright', legend=c(5, 20, 50), lwd=3, col = colors, bty='n',title = 
 
 In both plots, the greater the distance, the greater the power will be.
 Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distributions and the performance of the test both on the side and the power would be better.
-Increasing the dimensionality will increase the distance from the distributions first, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be.
+Increasing the dimensionality the test has low power due the curse of dimensionality, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be and without a huge amount of data, it would return a lower power of the test.
 
 ## **Exercise 4**
 
@@ -595,12 +596,11 @@ Since data were taken in different labs, it's worth removing the
 lab-specific effect normalizing over all the different labs. So we scale the patient's values with the mean and the standard deviation of all data of the laboratory that takes the datas of the patient's brain. In this way we can compare subjects coming from different laboratories.
 
 As the previous study suggests, to try to separate the two groups (ASD vs TD) we will by digging (linear) dependencies of cortical regions. Such that we will study the time series of the autocorrelation instead of the original ones.
-Autocorrelation is defined as : $AC(t1,t2) = Corr(X_{t_1} ,X_{t_2})$.
+Autocorrelation is defined as : $AC(t_1,t_2) = Corr(X_{t_1} ,X_{t_2})$.
 
 
 ```{r scale dataset by lab, eval=FALSE}
 # Put all data together.
-# [TODO] comment the code
 all_data <- c()
 for(el in 1:length(asd_data))  all_data <- c(all_data, asd_data[el])
 for(el in 1:length(td_data))  all_data <- c(all_data, td_data[el])
@@ -687,11 +687,11 @@ names(z_data)[ncol(z_data)] <- 'label'
 
 ```
 
-Since the data we collect are a finite sample ($n_{0} + n_{1} = 93 + 85 = 178$) with high dimensionality $k = 116 \times 3 = 348$ the machine learning algorithm as logistic regression would not work. Such that we need to regularize setting an early stopping and a $l_{2}$ regularization.
+Since the data we collect are a finite sample ($n_{0} + n_{1} = 93 + 85 = 178$) with high dimensionality $k = 116 \times 3 = 348$ a vanilla logistic regression would not perform goog- Such that we need to regularize setting an early stopping and a $l_{2}$ regularization.
 
 To perform the test in both cases, when the null hypothesis $H_{0}$ (the distributions of the scores for the groups are the same) is true and when is false, we split the td dataset in two in order to check the result of the test.
 
-#### Perform the test with TD and ASD subjects respectively with the labels 0 and 1
+#### Perform the test with two groups of TD subjects respectively with the labels 0 and 1
 
 ```{r Friedman regularized, eval = FALSE}
 Friedman_procedure <- function(P,x_data , z_data , permut = FALSE){
@@ -767,14 +767,14 @@ par(mfrow = c(1,2), col='white', col.axis='white', col.lab='white', col.main='wh
 first <- density(score_same[1:50])
 second <- density(score_same[51:93])
 
-plot(first, xlim=c(0,1), xlab='scores', lwd=.1, las=1, main= "Distribution of scored for two group of TD subjects")
+plot(first, xlim=c(0,1), xlab='scores', lwd=.1, las=1, main= "Distribution of scores for two group of TD subjects")
 lines(second, lwd=.1)
 
 dens_col <- c(rgb(0.2274510, 0.9411765, 0.6078431,.4),rgb(0.9882353, 0.9882353, 0.9882353, .4) )
 
 polygon(first, col=dens_col[1])
 polygon(second, col=dens_col[2])
-legend('topright', legend=c('group 1', 'group 2'), pch = 15, col=dens_col, cex=1.2, bty='n')
+legend('topright', legend=c('label 0', 'label 1'), pch = 15, col=dens_col, cex=1.2, bty='n')
 grid(lty=2, lwd=.6)
 
 
@@ -789,12 +789,13 @@ legend("topleft" , legend = c("Threshold" , "Observed\n  statistic") , lty = 2 ,
 
 ##### Comment
 
-The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
+The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha = q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
 Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data don't show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores is the same
 
+#### Perform the test with  TD and ASD subjects respectively with the labels 0 and 1
 
-#### Different groups (TD and ASD subjects)
+
 
 ```{r performing the Friedmann procedure different dataset, warning = FALSE, eval=FALSE}
  dim(x_data)
@@ -859,11 +860,11 @@ legend("topleft" , legend = c("Threshold" , "Observed \n  statistic") , lty = 2 
 
 ##### Comment
 
-The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha$ $q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
+The first plot shows the two distributions of the Kolmogorov-Smirnov scores for both samples. The second one shows the distribution of the statistics under the null hypothesis. The red line is the quantile at level $1- \alpha = q_{\alpha}$  of the distribution, and the blue line is the observed value of the statistic we get with our data.
 
 Since the decision rule is to reject the null hypothesis if the observed value of Kolmogorov Smirnov statistics is greater than $q_{\alpha}$, we reject the null hypothesis. Data show enough evidence in order to reject the null hypothesis, we claim that the distribution of the scores of asd and td subjects are different.
 
 #### Conclusion and final remark
 
-In the case of interest we are dealing with a noisy and small set of data, and the higher the dimension the "thinner" the information effectively available to 
-resolve the difference. Such procedure depends strictly to the sample size, expecially with high dimension and so it is worth to collect more data to let the procedure more consistent.
+In the case of interest we are dealing with a noisy and small set of data, and the higher the dimension the lower the information effectively available to 
+resolve the difference and without a large enough amount of data, we fall into the curse of dimensionality problem, so to have a better and more consinstent performance of the test is worth to collect more data.
