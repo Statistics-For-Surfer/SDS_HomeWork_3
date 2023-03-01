@@ -16,9 +16,7 @@ subjects and asd (autism spectrum disorder) subjects came from the same distribu
 ### *Structure*:
 This repository contains:
 
-* `brain.html`: The html file of the project.
-* `Brain.Rmd` : The R markdown file of the project.
-* `functions.R` : R file containing usefull function.
-* `Homework_02.pdf` : The pdf file text of the project.
-* `data`: folder containing the Rdata used for the sake of the project.
-* `images`: folder containing gif file for an appropiate visualitation.
+* `brain_report.html`: The html file of the project.
+* `Brain_2.Rmd` : The R markdown file of the project.
+* `td_asd_data.RData`: RData file cointaining fmri of 178 subjects
+* `data`: folder containing Rdata simulations.
