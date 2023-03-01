@@ -310,7 +310,7 @@ hist(data[,2],freq = F , breaks = 6 , border = "#2B3E50",
       col = 'khaki1', main = TeX(r"(p-value distribution under $H_{0}$ )", bold = T), xlab = TeX(r"(\hat{p}-value)"), las=1)
 points(seq(0,1,length.out = 300) , rep(1,300) , col = 'white' , type='l', lwd=2)
 
-legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = "white" , bty = "n", lwd = 3)
+legend("topright" , legend = "Uniform\ndistribution" , border = "white" , col = "white" , bty = "n", lwd = 3,cex=.8)
 
 ```
 
@@ -552,9 +552,9 @@ colors <- c('white', 'gold2', 'green', 'coral1')
 plot(1,1, type='n', xlim=c(0,3), ylim=c(0,1), xlab='distance',ylab='power', las=1, main = TeX('Power vs distance with $n_1=70$ & $k=20$', bold=T)) 
 grid(nx=NA, col="#f2f2f2", ny=NULL)
 for(i in 1:length(distance_power_n0)){
-  points(distance_power_n0[[i]], type='l', col=colors[i], lwd=2)
+  points(distance_power_n0[[i]], type='l', col=colors[5-i], lwd=2)
   }
-legend('bottomright', legend=c(20,50,70,100), lwd=3, col = colors, bty='n', title = TeX('$n_0$')) 
+legend('bottomright', legend=c(20,50,70,100), lwd=3, col = colors[length(colors):1], bty='n', title = TeX('$n_0$')) 
 
 
 
@@ -562,10 +562,10 @@ load('data/distance_power_k.RData')
 
 plot(1,1, type='n', xlim=c(0,4), ylim=c(0,1), xlab='distance',ylab='power', las=1, main=TeX('Power vs distance with $n_0=70$ & $n_1=60$', bold=T))
 grid(nx=NA, col="#f2f2f2", ny=NULL)
-for(i in 1:3){
-  points(distance_power_k[[i]], type='l', col=colors[4-i], lwd=2)
+for(i in 1:4){
+  points(distance_power_k[[i]], type='l', col=colors[i], lwd=2)
   }
-legend('bottomright', legend=c(5, 20, 50), lwd=3, col = colors, bty='n',title = 'k')
+legend('bottomright', legend=c(5, 20, 50, 100), lwd=3, col = colors, bty='n',title = 'k')
 
 ```
 
@@ -573,7 +573,7 @@ legend('bottomright', legend=c(5, 20, 50), lwd=3, col = colors, bty='n',title = 
 
 In both plots, the greater the distance, the greater the power will be.
 Increasing the values of the sample size $n_{0}$, would increase the power of the test. Adding information would give more possibilities to the test in order to detect the difference between the two distributions and the performance of the test both on the side and the power would be better.
-Increasing the dimensionality the test has low power due the curse of dimensionality, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be and without a huge amount of data, it would return a lower power of the test.
+Increasing the dimensionality the test has low power due the curse of dimensionality, with the small amount of data, the higher the dimension, the thinner the information effectively available to resolve the difference would be and without a huge amount of data, it would return a lower power of the test. This is highlighted when $k = 100$, the power results too low or even zero and it is needed to have a huge amount of data to get better performance.
 
 ## **Exercise 4**
 
@@ -839,7 +839,7 @@ par(mfrow = c(1,2), col='white', col.axis='white', col.lab='white', col.main='wh
 first <- density(score_different[1:50])
 second <- density(score_different[51:93])
 
-plot(second, xlim=c(0,1), xlab='scores', lwd=.1, las=1, main='Distribution of scored for TD and ASD subjects')
+plot(second, xlim=c(0,1), xlab='scores', lwd=.1, las=1, main='Distribution of scores for TD and ASD subjects')
 lines(first, lwd=.1)
 legend('topleft', legend=c('TD', 'ASD'), pch = 15, col=dens_col, cex=1.2, bty='n')
 polygon(first, col=dens_col[1])
